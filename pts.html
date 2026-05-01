@@ -1,0 +1,1835 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PTS Rwanda – Premier Transport & Tour Services</title>
+  <meta name="description" content="Experience elegance on every journey. Luxury car rentals and safari adventures across Rwanda and East Africa." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --color-dark:     #0a1a10;
+      --color-deep:     #0d2318;
+      --color-mid:      #1a3a28;
+      --color-gold:     #c9a547;
+      --color-gold-lt:  #e2c06a;
+      --color-cream:    #f5f0e8;
+      --color-white:    #ffffff;
+      --color-muted:    #8a9e92;
+      --color-border:   rgba(201,165,71,0.18);
+      --color-card:     #112219;
+
+      --font-display: 'Playfair Display', Georgia, serif;
+      --font-body:    'Inter', system-ui, sans-serif;
+
+      --radius-sm:  6px;
+      --radius-md:  12px;
+      --radius-lg:  20px;
+      --radius-xl:  32px;
+
+      --shadow-gold: 0 4px 32px rgba(201,165,71,0.15);
+      --shadow-card: 0 2px 24px rgba(0,0,0,0.4);
+
+      --nav-h: 72px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font-body);
+      background: var(--color-dark);
+      color: var(--color-cream);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    img { display: block; max-width: 100%; }
+    a  { color: inherit; text-decoration: none; }
+
+    /* ─── UTILITIES ─── */
+    .container {
+      width: 100%;
+      max-width: 1200px;
+      margin-inline: auto;
+      padding-inline: 24px;
+    }
+    .gold { color: var(--color-gold); }
+    .sr-only {
+      position: absolute; width: 1px; height: 1px;
+      padding: 0; margin: -1px; overflow: hidden;
+      clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+    }
+
+    /* ─── NAVBAR ─── */
+    .nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      height: var(--nav-h);
+      display: flex; align-items: center;
+      transition: background 0.3s, box-shadow 0.3s;
+    }
+    .nav.scrolled {
+      background: rgba(10,26,16,0.96);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      box-shadow: 0 1px 0 var(--color-border);
+    }
+    .nav__inner {
+      width: 100%; max-width: 1200px; margin-inline: auto;
+      padding-inline: 24px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .nav__logo {
+      display: flex; flex-direction: column; line-height: 1.1;
+    }
+    .nav__logo-mark {
+      font-family: var(--font-display);
+      font-size: 22px; font-weight: 700;
+      color: var(--color-gold);
+      letter-spacing: 0.04em;
+    }
+    .nav__logo-sub {
+      font-size: 10px; font-weight: 500;
+      letter-spacing: 0.18em; text-transform: uppercase;
+      color: var(--color-muted);
+    }
+    .nav__links {
+      display: flex; gap: 32px;
+      list-style: none;
+    }
+    .nav__links a {
+      font-size: 14px; font-weight: 500;
+      letter-spacing: 0.04em;
+      color: rgba(245,240,232,0.75);
+      transition: color 0.2s;
+    }
+    .nav__links a:hover { color: var(--color-gold); }
+    .nav__cta {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 10px 20px;
+      background: var(--color-gold);
+      color: var(--color-dark);
+      font-size: 13px; font-weight: 600;
+      letter-spacing: 0.06em; text-transform: uppercase;
+      border-radius: var(--radius-sm);
+      transition: background 0.2s, transform 0.15s;
+    }
+    .nav__cta:hover { background: var(--color-gold-lt); transform: translateY(-1px); }
+    .nav__burger {
+      display: none;
+      flex-direction: column; gap: 5px;
+      background: none; border: none; cursor: pointer; padding: 8px;
+      min-width: 44px; min-height: 44px; justify-content: center; align-items: center;
+    }
+    .nav__burger span {
+      display: block; width: 22px; height: 2px;
+      background: var(--color-cream); border-radius: 2px;
+      transition: transform 0.25s, opacity 0.25s;
+    }
+    .nav__mobile {
+      display: none; position: fixed;
+      top: var(--nav-h); left: 0; right: 0;
+      background: rgba(10,26,16,0.98);
+      backdrop-filter: blur(12px);
+      padding: 24px;
+      flex-direction: column; gap: 8px;
+      z-index: 99;
+      border-top: 1px solid var(--color-border);
+    }
+    .nav__mobile.open { display: flex; }
+    .nav__mobile a {
+      display: block; padding: 12px 16px;
+      font-size: 16px; font-weight: 500;
+      color: rgba(245,240,232,0.85);
+      border-radius: var(--radius-sm);
+      transition: background 0.15s, color 0.15s;
+      min-height: 44px;
+    }
+    .nav__mobile a:hover { background: rgba(201,165,71,0.08); color: var(--color-gold); }
+    .nav__mobile .nav__cta { margin-top: 8px; justify-content: center; }
+
+    /* ─── HERO ─── */
+    .hero {
+      position: relative;
+      min-height: 100svh;
+      display: flex; align-items: center;
+      overflow: hidden;
+    }
+    .hero__bg {
+      position: absolute; inset: 0;
+      background:
+        linear-gradient(160deg, rgba(10,26,16,0.88) 0%, rgba(13,35,24,0.65) 50%, rgba(10,26,16,0.9) 100%),
+        url('https://images.unsplash.com/photo-1516026672322-bc52d61a55d5?w=1600&q=80&auto=format&fit=crop') center/cover no-repeat;
+    }
+    .hero__bg::after {
+      content: '';
+      position: absolute; inset: 0;
+      background: radial-gradient(ellipse 80% 60% at 50% 120%, rgba(201,165,71,0.08) 0%, transparent 70%);
+    }
+    .hero__content {
+      position: relative;
+      padding-top: calc(var(--nav-h) + 40px);
+      padding-bottom: 80px;
+    }
+    .hero__eyebrow {
+      display: inline-flex; align-items: center; gap: 10px;
+      font-size: 11px; font-weight: 600;
+      letter-spacing: 0.22em; text-transform: uppercase;
+      color: var(--color-gold);
+      margin-bottom: 24px;
+    }
+    .hero__eyebrow::before {
+      content: '';
+      display: block; width: 32px; height: 1px;
+      background: var(--color-gold);
+    }
+    .hero__title {
+      font-family: var(--font-display);
+      font-size: clamp(40px, 7vw, 80px);
+      font-weight: 700;
+      line-height: 1.1;
+      max-width: 700px;
+      margin-bottom: 24px;
+    }
+    .hero__title em {
+      font-style: italic;
+      color: var(--color-gold);
+    }
+    .hero__desc {
+      font-size: clamp(16px, 2vw, 18px);
+      color: rgba(245,240,232,0.72);
+      max-width: 480px;
+      margin-bottom: 40px;
+      line-height: 1.7;
+    }
+    .hero__actions {
+      display: flex; flex-wrap: wrap; gap: 16px;
+    }
+    .btn-primary {
+      display: inline-flex; align-items: center; gap: 10px;
+      padding: 16px 32px;
+      background: var(--color-gold);
+      color: var(--color-dark);
+      font-size: 14px; font-weight: 700;
+      letter-spacing: 0.08em; text-transform: uppercase;
+      border-radius: var(--radius-sm);
+      transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
+      min-height: 52px;
+    }
+    .btn-primary:hover {
+      background: var(--color-gold-lt);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(201,165,71,0.3);
+    }
+    .btn-outline {
+      display: inline-flex; align-items: center; gap: 10px;
+      padding: 14px 28px;
+      border: 1.5px solid rgba(245,240,232,0.3);
+      color: var(--color-cream);
+      font-size: 14px; font-weight: 500;
+      letter-spacing: 0.04em;
+      border-radius: var(--radius-sm);
+      transition: border-color 0.2s, color 0.2s, transform 0.15s;
+      min-height: 52px;
+    }
+    .btn-outline:hover {
+      border-color: var(--color-gold);
+      color: var(--color-gold);
+      transform: translateY(-2px);
+    }
+    .hero__stats {
+      position: absolute; bottom: 48px; right: 0;
+      display: flex; gap: 0;
+      background: rgba(13,35,24,0.8);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+    }
+    .hero__stat {
+      padding: 20px 32px;
+      border-right: 1px solid var(--color-border);
+      text-align: center;
+    }
+    .hero__stat:last-child { border-right: none; }
+    .hero__stat-num {
+      font-family: var(--font-display);
+      font-size: 28px; font-weight: 700;
+      color: var(--color-gold);
+      line-height: 1;
+    }
+    .hero__stat-label {
+      font-size: 11px; font-weight: 500;
+      letter-spacing: 0.12em; text-transform: uppercase;
+      color: var(--color-muted);
+      margin-top: 4px;
+    }
+
+    /* ─── SECTION HEADER ─── */
+    .section-header { text-align: center; margin-bottom: 64px; }
+    .section-eyebrow {
+      display: inline-block;
+      font-size: 11px; font-weight: 600;
+      letter-spacing: 0.22em; text-transform: uppercase;
+      color: var(--color-gold);
+      margin-bottom: 16px;
+    }
+    .section-title {
+      font-family: var(--font-display);
+      font-size: clamp(28px, 4vw, 44px);
+      font-weight: 700; line-height: 1.15;
+      max-width: 560px; margin-inline: auto;
+    }
+    .section-desc {
+      font-size: 17px; line-height: 1.7;
+      color: rgba(245,240,232,0.6);
+      max-width: 520px; margin-inline: auto;
+      margin-top: 16px;
+    }
+    .divider {
+      width: 48px; height: 2px;
+      background: linear-gradient(90deg, var(--color-gold), transparent);
+      margin: 20px auto 0;
+      border-radius: 2px;
+    }
+
+    /* ─── FLEET ─── */
+    .fleet { padding: 112px 0; }
+    .fleet__tabs {
+      display: flex; gap: 4px; justify-content: center;
+      margin-bottom: 48px;
+      background: var(--color-card);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      padding: 6px;
+      width: fit-content; margin-inline: auto;
+    }
+    .fleet__tab {
+      padding: 10px 28px;
+      font-size: 13px; font-weight: 600;
+      letter-spacing: 0.06em; text-transform: uppercase;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      background: none; border: none;
+      color: var(--color-muted);
+      transition: background 0.2s, color 0.2s;
+      min-height: 44px;
+    }
+    .fleet__tab.active, .fleet__tab:hover {
+      background: var(--color-gold);
+      color: var(--color-dark);
+    }
+    .fleet__grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(268px, 1fr));
+      gap: 24px;
+    }
+    .car-card {
+      background: var(--color-card);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      transition: transform 0.25s, box-shadow 0.25s, border-color 0.25s;
+    }
+    .car-card:hover {
+      transform: translateY(-6px);
+      box-shadow: var(--shadow-gold);
+      border-color: rgba(201,165,71,0.35);
+    }
+    .car-card__img {
+      width: 100%; height: 200px;
+      object-fit: cover;
+      background: var(--color-mid);
+    }
+    .car-card__body { padding: 24px; }
+    .car-card__badge {
+      display: inline-block;
+      padding: 4px 10px;
+      background: rgba(201,165,71,0.12);
+      border: 1px solid rgba(201,165,71,0.25);
+      border-radius: 20px;
+      font-size: 11px; font-weight: 600;
+      letter-spacing: 0.1em; text-transform: uppercase;
+      color: var(--color-gold);
+      margin-bottom: 12px;
+    }
+    .car-card__name {
+      font-family: var(--font-display);
+      font-size: 20px; font-weight: 600;
+      margin-bottom: 8px;
+    }
+    .car-card__desc {
+      font-size: 14px;
+      color: rgba(245,240,232,0.55);
+      line-height: 1.6;
+      margin-bottom: 20px;
+    }
+    .car-card__features {
+      display: flex; flex-wrap: wrap; gap: 8px;
+      margin-bottom: 20px;
+    }
+    .car-card__feat {
+      display: flex; align-items: center; gap: 5px;
+      font-size: 12px;
+      color: var(--color-muted);
+    }
+    .car-card__feat svg { color: var(--color-gold); flex-shrink: 0; }
+    .car-card__cta {
+      display: flex; align-items: center; justify-content: space-between;
+      padding-top: 16px;
+      border-top: 1px solid var(--color-border);
+    }
+    .car-card__price {
+      font-size: 13px; color: var(--color-muted);
+    }
+    .car-card__price strong {
+      display: block; font-family: var(--font-display);
+      font-size: 22px; font-weight: 700;
+      color: var(--color-gold); line-height: 1;
+    }
+    .car-card__book {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 10px 18px;
+      background: transparent;
+      border: 1.5px solid var(--color-gold);
+      color: var(--color-gold);
+      font-size: 13px; font-weight: 600;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s;
+      min-height: 44px;
+    }
+    .car-card__book:hover {
+      background: var(--color-gold);
+      color: var(--color-dark);
+    }
+
+    /* ─── HOW IT WORKS ─── */
+    .how { padding: 112px 0; background: var(--color-deep); }
+    .how__grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 2px;
+      background: var(--color-border);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-xl);
+      overflow: hidden;
+    }
+    .how__step {
+      background: var(--color-card);
+      padding: 48px 32px;
+      position: relative;
+    }
+    .how__step:first-child { border-radius: var(--radius-xl) 0 0 var(--radius-xl); }
+    .how__step:last-child  { border-radius: 0 var(--radius-xl) var(--radius-xl) 0; }
+    .how__num {
+      font-family: var(--font-display);
+      font-size: 64px; font-weight: 700;
+      color: rgba(201,165,71,0.08);
+      line-height: 1; position: absolute; top: 20px; right: 24px;
+      pointer-events: none; user-select: none;
+    }
+    .how__icon {
+      width: 52px; height: 52px;
+      background: rgba(201,165,71,0.1);
+      border: 1px solid rgba(201,165,71,0.2);
+      border-radius: var(--radius-md);
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 20px;
+      color: var(--color-gold);
+    }
+    .how__step-title {
+      font-family: var(--font-display);
+      font-size: 20px; font-weight: 600;
+      margin-bottom: 10px;
+    }
+    .how__step-desc {
+      font-size: 14px; line-height: 1.7;
+      color: rgba(245,240,232,0.55);
+    }
+
+    /* ─── PACKAGES ─── */
+    .packages { padding: 112px 0; }
+    .packages__grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+      gap: 24px;
+    }
+    .pkg-card {
+      position: relative;
+      background: var(--color-card);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      min-height: 420px;
+      display: flex; flex-direction: column; justify-content: flex-end;
+      transition: transform 0.25s, box-shadow 0.25s;
+    }
+    .pkg-card:hover {
+      transform: translateY(-6px);
+      box-shadow: var(--shadow-gold);
+    }
+    .pkg-card__bg {
+      position: absolute; inset: 0;
+      object-fit: cover; width: 100%; height: 100%;
+    }
+    .pkg-card__overlay {
+      position: absolute; inset: 0;
+      background: linear-gradient(to top, rgba(10,26,16,0.95) 0%, rgba(10,26,16,0.4) 50%, transparent 100%);
+    }
+    .pkg-card__body {
+      position: relative;
+      padding: 32px;
+    }
+    .pkg-card__tag {
+      display: inline-block;
+      padding: 4px 10px;
+      background: var(--color-gold);
+      color: var(--color-dark);
+      font-size: 11px; font-weight: 700;
+      letter-spacing: 0.1em; text-transform: uppercase;
+      border-radius: 20px;
+      margin-bottom: 12px;
+    }
+    .pkg-card__title {
+      font-family: var(--font-display);
+      font-size: 24px; font-weight: 700;
+      margin-bottom: 8px; line-height: 1.2;
+    }
+    .pkg-card__meta {
+      font-size: 13px; color: rgba(245,240,232,0.6);
+      margin-bottom: 20px;
+    }
+    .pkg-card__meta span { color: var(--color-gold); font-weight: 600; }
+    .pkg-card__cta {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 12px 24px;
+      background: rgba(245,240,232,0.1);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(245,240,232,0.2);
+      color: var(--color-cream);
+      font-size: 13px; font-weight: 600;
+      border-radius: var(--radius-sm);
+      transition: background 0.2s, border-color 0.2s;
+      min-height: 44px;
+    }
+    .pkg-card__cta:hover {
+      background: var(--color-gold);
+      border-color: var(--color-gold);
+      color: var(--color-dark);
+    }
+    .pkg-card--featured {
+      grid-column: span 2;
+      min-height: 500px;
+    }
+
+    /* ─── CTA BANNER ─── */
+    .cta-banner {
+      padding: 96px 0;
+      background:
+        linear-gradient(135deg, rgba(10,26,16,0.97) 0%, rgba(26,58,40,0.95) 100%),
+        url('https://images.unsplash.com/photo-1547471080-7cc2caa01a7e?w=1200&q=80&auto=format&fit=crop') center/cover no-repeat;
+      position: relative; overflow: hidden;
+    }
+    .cta-banner::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: radial-gradient(ellipse 60% 80% at 50% 50%, rgba(201,165,71,0.06) 0%, transparent 70%);
+    }
+    .cta-banner__inner {
+      position: relative;
+      display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+      gap: 32px;
+    }
+    .cta-banner__text { max-width: 560px; }
+    .cta-banner__title {
+      font-family: var(--font-display);
+      font-size: clamp(28px, 4vw, 48px);
+      font-weight: 700; line-height: 1.15;
+      margin-bottom: 16px;
+    }
+    .cta-banner__desc {
+      font-size: 17px; line-height: 1.7;
+      color: rgba(245,240,232,0.6);
+    }
+
+    /* ─── CONTACT ─── */
+    .contact { padding: 112px 0; background: var(--color-deep); }
+    .contact__grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 64px;
+    }
+    .contact__info { display: flex; flex-direction: column; gap: 32px; }
+    .contact__item {
+      display: flex; gap: 16px; align-items: flex-start;
+    }
+    .contact__icon {
+      width: 48px; height: 48px; flex-shrink: 0;
+      background: rgba(201,165,71,0.1);
+      border: 1px solid rgba(201,165,71,0.2);
+      border-radius: var(--radius-md);
+      display: flex; align-items: center; justify-content: center;
+      color: var(--color-gold);
+    }
+    .contact__item-label {
+      font-size: 11px; font-weight: 600;
+      letter-spacing: 0.14em; text-transform: uppercase;
+      color: var(--color-muted); margin-bottom: 4px;
+    }
+    .contact__item-value {
+      font-size: 16px; font-weight: 500;
+      color: var(--color-cream);
+    }
+    .contact__social {
+      display: flex; gap: 12px; margin-top: 8px;
+    }
+    .contact__soc-btn {
+      width: 44px; height: 44px;
+      background: rgba(201,165,71,0.1);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-sm);
+      display: flex; align-items: center; justify-content: center;
+      color: var(--color-muted);
+      transition: background 0.2s, color 0.2s, border-color 0.2s;
+    }
+    .contact__soc-btn:hover {
+      background: var(--color-gold);
+      color: var(--color-dark);
+      border-color: var(--color-gold);
+    }
+    .contact__form { display: flex; flex-direction: column; gap: 20px; }
+    .form-group { display: flex; flex-direction: column; gap: 8px; }
+    .form-group label {
+      font-size: 13px; font-weight: 600;
+      letter-spacing: 0.06em; text-transform: uppercase;
+      color: var(--color-muted);
+    }
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      width: 100%; padding: 14px 16px;
+      background: var(--color-card);
+      border: 1.5px solid var(--color-border);
+      border-radius: var(--radius-sm);
+      color: var(--color-cream);
+      font-size: 15px;
+      font-family: var(--font-body);
+      transition: border-color 0.2s, box-shadow 0.2s;
+      min-height: 52px;
+    }
+    .form-group input::placeholder,
+    .form-group textarea::placeholder { color: var(--color-muted); }
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+      outline: none;
+      border-color: var(--color-gold);
+      box-shadow: 0 0 0 3px rgba(201,165,71,0.12);
+    }
+    .form-group textarea { resize: vertical; min-height: 120px; }
+    .form-group select { appearance: none; cursor: pointer; }
+    .form-group select option { background: var(--color-card); }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+    /* ─── TRUST BAR ─── */
+    .trust {
+      padding: 40px 0;
+      background: var(--color-card);
+      border-top: 1px solid var(--color-border);
+      border-bottom: 1px solid var(--color-border);
+    }
+    .trust__inner {
+      display: flex; align-items: center; justify-content: center;
+      flex-wrap: wrap; gap: 48px;
+    }
+    .trust__item {
+      display: flex; align-items: center; gap: 12px;
+      font-size: 13px; font-weight: 500;
+      color: var(--color-muted);
+      letter-spacing: 0.04em;
+    }
+    .trust__item svg { color: var(--color-gold); flex-shrink: 0; }
+    .trust__item strong { color: var(--color-cream); }
+
+    /* ─── TESTIMONIALS ─── */
+    .feedback { padding: 112px 0; }
+    .feedback__track-wrap {
+      overflow: hidden; position: relative;
+    }
+    .feedback__track-wrap::before,
+    .feedback__track-wrap::after {
+      content: '';
+      position: absolute; top: 0; bottom: 0; width: 80px; z-index: 2;
+      pointer-events: none;
+    }
+    .feedback__track-wrap::before {
+      left: 0;
+      background: linear-gradient(to right, var(--color-dark), transparent);
+    }
+    .feedback__track-wrap::after {
+      right: 0;
+      background: linear-gradient(to left, var(--color-dark), transparent);
+    }
+    .feedback__track {
+      display: flex; gap: 24px;
+      transition: transform 0.5s cubic-bezier(0.4,0,0.2,1);
+      will-change: transform;
+    }
+    .tcard {
+      flex: 0 0 360px;
+      background: var(--color-card);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: 32px;
+      transition: border-color 0.25s;
+    }
+    .tcard:hover { border-color: rgba(201,165,71,0.35); }
+    .tcard__stars {
+      display: flex; gap: 4px; margin-bottom: 16px;
+    }
+    .tcard__stars svg { color: var(--color-gold); }
+    .tcard__quote {
+      font-family: var(--font-display);
+      font-size: 17px; line-height: 1.65;
+      color: rgba(245,240,232,0.85);
+      margin-bottom: 24px;
+      font-style: italic;
+    }
+    .tcard__author {
+      display: flex; align-items: center; gap: 12px;
+      padding-top: 20px;
+      border-top: 1px solid var(--color-border);
+    }
+    .tcard__avatar {
+      width: 44px; height: 44px; border-radius: 50%;
+      object-fit: cover;
+      background: var(--color-mid);
+      flex-shrink: 0;
+    }
+    .tcard__name { font-size: 14px; font-weight: 600; }
+    .tcard__role { font-size: 12px; color: var(--color-muted); margin-top: 2px; }
+    .feedback__controls {
+      display: flex; align-items: center; justify-content: center;
+      gap: 16px; margin-top: 40px;
+    }
+    .feedback__btn {
+      width: 44px; height: 44px; border-radius: 50%;
+      background: var(--color-card);
+      border: 1px solid var(--color-border);
+      color: var(--color-cream);
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      transition: background 0.2s, border-color 0.2s, color 0.2s;
+    }
+    .feedback__btn:hover {
+      background: var(--color-gold);
+      border-color: var(--color-gold);
+      color: var(--color-dark);
+    }
+    .feedback__dots {
+      display: flex; gap: 8px;
+    }
+    .feedback__dot {
+      width: 8px; height: 8px; border-radius: 4px;
+      background: var(--color-border);
+      transition: background 0.25s, width 0.25s;
+      cursor: pointer;
+    }
+    .feedback__dot.active {
+      width: 24px;
+      background: var(--color-gold);
+    }
+
+    /* ─── INSIGHTS ─── */
+    .insights { padding: 112px 0; background: var(--color-deep); }
+    .insights__grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 24px;
+    }
+    .insight-card {
+      background: var(--color-card);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      display: flex; flex-direction: column;
+      transition: transform 0.25s, box-shadow 0.25s, border-color 0.25s;
+    }
+    .insight-card:hover {
+      transform: translateY(-5px);
+      box-shadow: var(--shadow-gold);
+      border-color: rgba(201,165,71,0.3);
+    }
+    .insight-card__img {
+      width: 100%; height: 210px;
+      object-fit: cover;
+      background: var(--color-mid);
+    }
+    .insight-card__body { padding: 28px; flex: 1; display: flex; flex-direction: column; }
+    .insight-card__meta {
+      display: flex; align-items: center; gap: 12px;
+      margin-bottom: 12px;
+    }
+    .insight-card__cat {
+      display: inline-block; padding: 3px 10px;
+      background: rgba(201,165,71,0.12);
+      border: 1px solid rgba(201,165,71,0.2);
+      border-radius: 20px;
+      font-size: 11px; font-weight: 600;
+      letter-spacing: 0.1em; text-transform: uppercase;
+      color: var(--color-gold);
+    }
+    .insight-card__date {
+      font-size: 12px; color: var(--color-muted);
+    }
+    .insight-card__title {
+      font-family: var(--font-display);
+      font-size: 19px; font-weight: 600; line-height: 1.3;
+      margin-bottom: 10px;
+      transition: color 0.2s;
+    }
+    .insight-card:hover .insight-card__title { color: var(--color-gold); }
+    .insight-card__excerpt {
+      font-size: 14px; line-height: 1.7;
+      color: rgba(245,240,232,0.55);
+      flex: 1;
+      margin-bottom: 20px;
+    }
+    .insight-card__read {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 13px; font-weight: 600;
+      color: var(--color-gold);
+      transition: gap 0.2s;
+    }
+    .insight-card:hover .insight-card__read { gap: 10px; }
+
+    /* ─── FOOTER ─── */
+    .footer {
+      background: var(--color-dark);
+      border-top: 1px solid var(--color-border);
+      padding: 64px 0 32px;
+    }
+    .footer__grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr 1fr;
+      gap: 48px; margin-bottom: 48px;
+    }
+    .footer__brand-logo {
+      font-family: var(--font-display);
+      font-size: 26px; font-weight: 700;
+      color: var(--color-gold); margin-bottom: 12px;
+    }
+    .footer__brand-desc {
+      font-size: 14px; line-height: 1.7;
+      color: rgba(245,240,232,0.45);
+      max-width: 280px; margin-bottom: 24px;
+    }
+    .footer__col-title {
+      font-size: 12px; font-weight: 700;
+      letter-spacing: 0.16em; text-transform: uppercase;
+      color: var(--color-muted);
+      margin-bottom: 20px;
+    }
+    .footer__links { list-style: none; display: flex; flex-direction: column; gap: 12px; }
+    .footer__links a {
+      font-size: 14px; color: rgba(245,240,232,0.5);
+      transition: color 0.2s;
+    }
+    .footer__links a:hover { color: var(--color-gold); }
+    .footer__bottom {
+      padding-top: 32px;
+      border-top: 1px solid var(--color-border);
+      display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center;
+      gap: 16px;
+      font-size: 13px; color: rgba(245,240,232,0.35);
+    }
+    .footer__bottom-links { display: flex; gap: 24px; }
+    .footer__bottom-links a { color: inherit; transition: color 0.2s; }
+    .footer__bottom-links a:hover { color: var(--color-gold); }
+
+    /* ─── RESPONSIVE ─── */
+    @media (max-width: 1024px) {
+      .footer__grid { grid-template-columns: 1fr 1fr; }
+      .pkg-card--featured { grid-column: span 1; }
+    }
+
+    @media (max-width: 768px) {
+      :root { --nav-h: 64px; }
+      .nav__links, .nav__cta { display: none; }
+      .nav__burger { display: flex; }
+
+      .hero__stats { display: none; }
+
+      .how__step:first-child,
+      .how__step:last-child { border-radius: 0; }
+      .how__grid { grid-template-columns: 1fr; gap: 2px; background: var(--color-border); }
+
+      .contact__grid { grid-template-columns: 1fr; gap: 48px; }
+      .footer__grid { grid-template-columns: 1fr 1fr; gap: 32px; }
+      .form-row { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 480px) {
+      .footer__grid { grid-template-columns: 1fr; }
+      .hero__actions { flex-direction: column; }
+      .hero__actions .btn-primary,
+      .hero__actions .btn-outline { width: 100%; justify-content: center; }
+    }
+
+    /* ─── SCROLL ANIMATION ─── */
+    .fade-up {
+      opacity: 0;
+      transform: translateY(24px);
+      transition: opacity 0.6s ease, transform 0.6s ease;
+    }
+    .fade-up.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .fade-up { opacity: 1; transform: none; transition: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ─── NAVBAR ─── -->
+  <nav class="nav" id="navbar" aria-label="Main navigation">
+    <div class="nav__inner">
+      <a href="#home" class="nav__logo" aria-label="PTS Rwanda Home">
+        <span class="nav__logo-mark">PTS</span>
+        <span class="nav__logo-sub">Rwanda</span>
+      </a>
+      <ul class="nav__links" role="list">
+        <li><a href="#home">Home</a></li>
+        <li><a href="#fleet">Car Rental</a></li>
+        <li><a href="#packages">Travel Packages</a></li>
+        <li><a href="#how">How It Works</a></li>
+        <li><a href="#feedback">Feedback</a></li>
+        <li><a href="#insights">Insights</a></li>
+        <li><a href="#contact">Contact</a></li>
+      </ul>
+      <a href="#contact" class="nav__cta">Book Now</a>
+      <button class="nav__burger" id="burger" aria-label="Toggle menu" aria-expanded="false" aria-controls="mobileMenu">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- Mobile Menu -->
+  <div class="nav__mobile" id="mobileMenu" role="navigation" aria-label="Mobile navigation">
+    <a href="#home" class="mobile-link">Home</a>
+    <a href="#fleet" class="mobile-link">Car Rental</a>
+    <a href="#packages" class="mobile-link">Travel Packages</a>
+    <a href="#how" class="mobile-link">How It Works</a>
+    <a href="#feedback" class="mobile-link">Feedback</a>
+    <a href="#insights" class="mobile-link">Insights</a>
+    <a href="#contact" class="mobile-link">Contact</a>
+    <a href="#contact" class="nav__cta mobile-link">Book Now</a>
+  </div>
+
+  <!-- ─── HERO ─── -->
+  <section class="hero" id="home" aria-label="Hero">
+    <div class="hero__bg" role="img" aria-label="Luxury vehicle on a scenic African road"></div>
+    <div class="container hero__content">
+      <p class="hero__eyebrow">Premier Transport & Tour Services</p>
+      <h1 class="hero__title">
+        Experience <em>Elegance</em><br>on Every Journey
+      </h1>
+      <p class="hero__desc">
+        Discover Rwanda and East Africa in unmatched comfort. From luxury sedans to safari landcruisers — your adventure starts here.
+      </p>
+      <div class="hero__actions">
+        <a href="#fleet" class="btn-primary">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 17H3a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v3"/><rect x="9" y="11" width="14" height="10" rx="1"/><circle cx="12" cy="21" r="1"/><circle cx="20" cy="21" r="1"/></svg>
+          Explore Fleet
+        </a>
+        <a href="#packages" class="btn-outline">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 18 0 9 9 0 0 0-18 0"/><path d="M3 12h4m10 0h4M12 3v4m0 10v4"/></svg>
+          Safari Packages
+        </a>
+      </div>
+      <div class="hero__stats" aria-label="Company statistics">
+        <div class="hero__stat">
+          <div class="hero__stat-num">50+</div>
+          <div class="hero__stat-label">Vehicles</div>
+        </div>
+        <div class="hero__stat">
+          <div class="hero__stat-num">500+</div>
+          <div class="hero__stat-label">Happy Clients</div>
+        </div>
+        <div class="hero__stat">
+          <div class="hero__stat-num">10+</div>
+          <div class="hero__stat-label">Destinations</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── FLEET ─── -->
+  <section class="fleet" id="fleet" aria-labelledby="fleet-heading">
+    <div class="container">
+      <div class="section-header fade-up">
+        <p class="section-eyebrow">Our Fleet</p>
+        <h2 class="section-title" id="fleet-heading">Choose Your Perfect Ride</h2>
+        <p class="section-desc">From boardroom-ready luxury sedans to rugged safari cruisers — every vehicle is impeccably maintained for your comfort.</p>
+        <div class="divider" aria-hidden="true"></div>
+      </div>
+
+      <div class="fleet__tabs" role="tablist" aria-label="Fleet categories">
+        <button class="fleet__tab active" role="tab" aria-selected="true" aria-controls="luxury-panel" id="tab-luxury">Luxury</button>
+        <button class="fleet__tab" role="tab" aria-selected="false" aria-controls="group-panel" id="tab-group">Group Cruise</button>
+      </div>
+
+      <div id="luxury-panel" class="fleet__grid" role="tabpanel" aria-labelledby="tab-luxury">
+        <!-- BMW 750 Series -->
+        <article class="car-card fade-up">
+          <img class="car-card__img"
+            src="https://images.unsplash.com/photo-1555215695-3004980ad54e?w=600&q=80&auto=format&fit=crop"
+            alt="BMW 750 Series luxury sedan" loading="lazy" width="600" height="200" />
+          <div class="car-card__body">
+            <span class="car-card__badge">Luxury Sedan</span>
+            <h3 class="car-card__name">BMW 750 Series</h3>
+            <p class="car-card__desc">Ultimate executive sedan with advanced driver assist and premium interior craftsmanship.</p>
+            <ul class="car-card__features" aria-label="Features">
+              <li class="car-card__feat">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                5 Seats
+              </li>
+              <li class="car-card__feat">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><rect x="1" y="3" width="15" height="13" rx="1"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+                Chauffeur Available
+              </li>
+              <li class="car-card__feat">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                Fully Insured
+              </li>
+            </ul>
+            <div class="car-card__cta">
+              <div class="car-card__price">
+                <strong>On Request</strong>per day
+              </div>
+              <button class="car-card__book" onclick="document.getElementById('contact').scrollIntoView({behavior:'smooth'})">
+                Book
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14m-7-7 7 7-7 7"/></svg>
+              </button>
+            </div>
+          </div>
+        </article>
+
+        <!-- Toyota LC 300 -->
+        <article class="car-card fade-up" style="transition-delay:0.1s">
+          <img class="car-card__img"
+            src="https://images.unsplash.com/photo-1621007947382-bb3c3994e3fb?w=600&q=80&auto=format&fit=crop"
+            alt="Toyota Land Cruiser 300 luxury SUV" loading="lazy" width="600" height="200" />
+          <div class="car-card__body">
+            <span class="car-card__badge">Luxury SUV</span>
+            <h3 class="car-card__name">Toyota LC 300</h3>
+            <p class="car-card__desc">The pinnacle of off-road luxury. Conquer Rwanda's terrain without sacrificing comfort.</p>
+            <ul class="car-card__features" aria-label="Features">
+              <li class="car-card__feat">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                7 Seats
+              </li>
+              <li class="car-card__feat">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+                4WD Off-Road
+              </li>
+              <li class="car-card__feat">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                Fully Insured
+              </li>
+            </ul>
+            <div class="car-card__cta">
+              <div class="car-card__price"><strong>On Request</strong>per day</div>
+              <button class="car-card__book" onclick="document.getElementById('contact').scrollIntoView({behavior:'smooth'})">
+                Book
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14m-7-7 7 7-7 7"/></svg>
+              </button>
+            </div>
+          </div>
+        </article>
+
+        <!-- Landcruiser V8 -->
+        <article class="car-card fade-up" style="transition-delay:0.2s">
+          <img class="car-card__img"
+            src="https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?w=600&q=80&auto=format&fit=crop"
+            alt="Landcruiser V8 on African road" loading="lazy" width="600" height="200" />
+          <div class="car-card__body">
+            <span class="car-card__badge">Safari SUV</span>
+            <h3 class="car-card__name">Landcruiser V8</h3>
+            <p class="car-card__desc">Trusted by safari professionals worldwide. Built for the wild, finished for royalty.</p>
+            <ul class="car-card__features" aria-label="Features">
+              <li class="car-card__feat">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                8 Seats
+              </li>
+              <li class="car-card__feat">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+                Pop-up Roof
+              </li>
+              <li class="car-card__feat">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                Fully Insured
+              </li>
+            </ul>
+            <div class="car-card__cta">
+              <div class="car-card__price"><strong>On Request</strong>per day</div>
+              <button class="car-card__book" onclick="document.getElementById('contact').scrollIntoView({behavior:'smooth'})">
+                Book
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14m-7-7 7 7-7 7"/></svg>
+              </button>
+            </div>
+          </div>
+        </article>
+
+        <!-- Prado TXL -->
+        <article class="car-card fade-up" style="transition-delay:0.3s">
+          <img class="car-card__img"
+            src="https://images.unsplash.com/photo-1502877338535-766e1452684a?w=600&q=80&auto=format&fit=crop"
+            alt="Toyota Prado TXL" loading="lazy" width="600" height="200" />
+          <div class="car-card__body">
+            <span class="car-card__badge">Premium SUV</span>
+            <h3 class="car-card__name">Toyota TXL Prado</h3>
+            <p class="car-card__desc">Versatile, elegant, and powerful. Ideal for both city transfers and national park excursions.</p>
+            <ul class="car-card__features" aria-label="Features">
+              <li class="car-card__feat">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                7 Seats
+              </li>
+              <li class="car-card__feat">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><rect x="1" y="3" width="15" height="13" rx="1"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+                Driver Available
+              </li>
+              <li class="car-card__feat">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                Fully Insured
+              </li>
+            </ul>
+            <div class="car-card__cta">
+              <div class="car-card__price"><strong>On Request</strong>per day</div>
+              <button class="car-card__book" onclick="document.getElementById('contact').scrollIntoView({behavior:'smooth'})">
+                Book
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14m-7-7 7 7-7 7"/></svg>
+              </button>
+            </div>
+          </div>
+        </article>
+      </div>
+
+      <div id="group-panel" class="fleet__grid" role="tabpanel" aria-labelledby="tab-group" hidden>
+        <!-- Safari Landcruiser -->
+        <article class="car-card fade-up">
+          <img class="car-card__img"
+            src="https://images.unsplash.com/photo-1516026672322-bc52d61a55d5?w=600&q=80&auto=format&fit=crop"
+            alt="Safari Landcruiser in the wild" loading="lazy" width="600" height="200" />
+          <div class="car-card__body">
+            <span class="car-card__badge">Safari</span>
+            <h3 class="car-card__name">Safari Landcruiser</h3>
+            <p class="car-card__desc">Purpose-built for game drives. Pop-up roof, extended range, and rugged reliability in the wild.</p>
+            <ul class="car-card__features" aria-label="Features">
+              <li class="car-card__feat">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+                8 Seats
+              </li>
+              <li class="car-card__feat">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+                Pop-Up Roof
+              </li>
+              <li class="car-card__feat">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                Ranger Guide
+              </li>
+            </ul>
+            <div class="car-card__cta">
+              <div class="car-card__price"><strong>On Request</strong>per day</div>
+              <button class="car-card__book" onclick="document.getElementById('contact').scrollIntoView({behavior:'smooth'})">Book <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14m-7-7 7 7-7 7"/></svg></button>
+            </div>
+          </div>
+        </article>
+
+        <!-- Executive Van -->
+        <article class="car-card fade-up" style="transition-delay:0.1s">
+          <img class="car-card__img"
+            src="https://images.unsplash.com/photo-1519003722824-194d4455a60c?w=600&q=80&auto=format&fit=crop"
+            alt="Executive Van for group transport" loading="lazy" width="600" height="200" />
+          <div class="car-card__body">
+            <span class="car-card__badge">Executive</span>
+            <h3 class="car-card__name">Executive Van</h3>
+            <p class="car-card__desc">Spacious and refined — perfect for corporate transfers, airport runs, and team excursions.</p>
+            <ul class="car-card__features" aria-label="Features">
+              <li class="car-card__feat"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>14 Seats</li>
+              <li class="car-card__feat"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>A/C & WiFi</li>
+              <li class="car-card__feat"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><rect x="1" y="3" width="15" height="13" rx="1"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>Driver Incl.</li>
+            </ul>
+            <div class="car-card__cta">
+              <div class="car-card__price"><strong>On Request</strong>per day</div>
+              <button class="car-card__book" onclick="document.getElementById('contact').scrollIntoView({behavior:'smooth'})">Book <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14m-7-7 7 7-7 7"/></svg></button>
+            </div>
+          </div>
+        </article>
+
+        <!-- Coaster Bus -->
+        <article class="car-card fade-up" style="transition-delay:0.2s">
+          <img class="car-card__img"
+            src="https://images.unsplash.com/photo-1570125909232-eb263c188f7e?w=600&q=80&auto=format&fit=crop"
+            alt="Coaster Bus for large groups" loading="lazy" width="600" height="200" />
+          <div class="car-card__body">
+            <span class="car-card__badge">Group</span>
+            <h3 class="car-card__name">Coaster Bus</h3>
+            <p class="car-card__desc">Comfortable mid-size coach for conference groups, school excursions, and large tours.</p>
+            <ul class="car-card__features" aria-label="Features">
+              <li class="car-card__feat"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>30 Seats</li>
+              <li class="car-card__feat"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>A/C Included</li>
+              <li class="car-card__feat"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><rect x="1" y="3" width="15" height="13" rx="1"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>Driver Incl.</li>
+            </ul>
+            <div class="car-card__cta">
+              <div class="car-card__price"><strong>On Request</strong>per day</div>
+              <button class="car-card__book" onclick="document.getElementById('contact').scrollIntoView({behavior:'smooth'})">Book <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14m-7-7 7 7-7 7"/></svg></button>
+            </div>
+          </div>
+        </article>
+
+        <!-- Presidential Bus -->
+        <article class="car-card fade-up" style="transition-delay:0.3s">
+          <img class="car-card__img"
+            src="https://images.unsplash.com/photo-1464219789935-c2d9d9aba644?w=600&q=80&auto=format&fit=crop"
+            alt="Presidential luxury coach" loading="lazy" width="600" height="200" />
+          <div class="car-card__body">
+            <span class="car-card__badge">Presidential</span>
+            <h3 class="car-card__name">Presidential Bus</h3>
+            <p class="car-card__desc">Our flagship coach. VIP-grade interiors, premium audio system, reclining seats, and onboard lavatory.</p>
+            <ul class="car-card__features" aria-label="Features">
+              <li class="car-card__feat"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>50 Seats</li>
+              <li class="car-card__feat"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>VIP Interior</li>
+              <li class="car-card__feat"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><rect x="1" y="3" width="15" height="13" rx="1"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>Driver + Steward</li>
+            </ul>
+            <div class="car-card__cta">
+              <div class="car-card__price"><strong>On Request</strong>per day</div>
+              <button class="car-card__book" onclick="document.getElementById('contact').scrollIntoView({behavior:'smooth'})">Book <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14m-7-7 7 7-7 7"/></svg></button>
+            </div>
+          </div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── HOW IT WORKS ─── -->
+  <section class="how" id="how" aria-labelledby="how-heading">
+    <div class="container">
+      <div class="section-header fade-up">
+        <p class="section-eyebrow">Simple Process</p>
+        <h2 class="section-title" id="how-heading">Your Journey in Four Steps</h2>
+        <p class="section-desc">From booking to drop-off, we make every step effortless.</p>
+        <div class="divider" aria-hidden="true"></div>
+      </div>
+      <div class="how__grid">
+        <div class="how__step fade-up">
+          <span class="how__num" aria-hidden="true">01</span>
+          <div class="how__icon" aria-hidden="true">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+          </div>
+          <h3 class="how__step-title">Book Online</h3>
+          <p class="how__step-desc">Fill in our simple booking form with your travel dates, destination, and vehicle preference.</p>
+        </div>
+        <div class="how__step fade-up" style="transition-delay:0.1s">
+          <span class="how__num" aria-hidden="true">02</span>
+          <div class="how__icon" aria-hidden="true">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M5 17H3a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v3"/><rect x="9" y="11" width="14" height="10" rx="1"/><circle cx="12" cy="21" r="1"/><circle cx="20" cy="21" r="1"/></svg>
+          </div>
+          <h3 class="how__step-title">Choose Your Ride</h3>
+          <p class="how__step-desc">Select from our premium fleet — luxury sedans, safari cruisers, executive vans, or coaches.</p>
+        </div>
+        <div class="how__step fade-up" style="transition-delay:0.2s">
+          <span class="how__num" aria-hidden="true">03</span>
+          <div class="how__icon" aria-hidden="true">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          </div>
+          <h3 class="how__step-title">We Pick You Up</h3>
+          <p class="how__step-desc">Your professional driver arrives punctually at your location — airport, hotel, or office.</p>
+        </div>
+        <div class="how__step fade-up" style="transition-delay:0.3s">
+          <span class="how__num" aria-hidden="true">04</span>
+          <div class="how__icon" aria-hidden="true">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="1" y="4" width="22" height="16" rx="2"/><path d="M1 10h22"/></svg>
+          </div>
+          <h3 class="how__step-title">Pay on Arrival</h3>
+          <p class="how__step-desc">Flexible payment options accepted. Pay after your experience — no hidden fees, ever.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── PACKAGES ─── -->
+  <section class="packages" id="packages" aria-labelledby="packages-heading">
+    <div class="container">
+      <div class="section-header fade-up">
+        <p class="section-eyebrow">Travel Packages</p>
+        <h2 class="section-title" id="packages-heading">Curated Safari Adventures</h2>
+        <p class="section-desc">Immerse yourself in Rwanda's natural wonders. Each package is tailored for extraordinary experiences.</p>
+        <div class="divider" aria-hidden="true"></div>
+      </div>
+      <div class="packages__grid">
+        <article class="pkg-card pkg-card--featured fade-up">
+          <img class="pkg-card__bg"
+            src="https://images.unsplash.com/photo-1516026672322-bc52d61a55d5?w=1200&q=80&auto=format&fit=crop"
+            alt="Gorilla trekking in Volcanoes National Park, Rwanda"
+            loading="lazy" width="1200" height="500" />
+          <div class="pkg-card__overlay" aria-hidden="true"></div>
+          <div class="pkg-card__body">
+            <span class="pkg-card__tag">Most Popular</span>
+            <h3 class="pkg-card__title">Gorilla Trekking & Volcanoes</h3>
+            <p class="pkg-card__meta">Volcanoes National Park · <span>3 Days / 2 Nights</span></p>
+            <a href="#contact" class="pkg-card__cta">
+              Enquire Now
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14m-7-7 7 7-7 7"/></svg>
+            </a>
+          </div>
+        </article>
+
+        <article class="pkg-card fade-up" style="transition-delay:0.1s">
+          <img class="pkg-card__bg"
+            src="https://images.unsplash.com/photo-1547471080-7cc2caa01a7e?w=800&q=80&auto=format&fit=crop"
+            alt="Akagera National Park wildlife safari"
+            loading="lazy" width="800" height="420" />
+          <div class="pkg-card__overlay" aria-hidden="true"></div>
+          <div class="pkg-card__body">
+            <span class="pkg-card__tag">Wildlife</span>
+            <h3 class="pkg-card__title">Akagera Wildlife Safari</h3>
+            <p class="pkg-card__meta">Akagera National Park · <span>2 Days</span></p>
+            <a href="#contact" class="pkg-card__cta">Enquire Now <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14m-7-7 7 7-7 7"/></svg></a>
+          </div>
+        </article>
+
+        <article class="pkg-card fade-up" style="transition-delay:0.2s">
+          <img class="pkg-card__bg"
+            src="https://images.unsplash.com/photo-1519681393784-d120267933ba?w=800&q=80&auto=format&fit=crop"
+            alt="Nyungwe Forest canopy walk"
+            loading="lazy" width="800" height="420" />
+          <div class="pkg-card__overlay" aria-hidden="true"></div>
+          <div class="pkg-card__body">
+            <span class="pkg-card__tag">Nature</span>
+            <h3 class="pkg-card__title">Nyungwe Forest Canopy Walk</h3>
+            <p class="pkg-card__meta">Nyungwe National Park · <span>1 Day</span></p>
+            <a href="#contact" class="pkg-card__cta">Enquire Now <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14m-7-7 7 7-7 7"/></svg></a>
+          </div>
+        </article>
+
+        <article class="pkg-card fade-up" style="transition-delay:0.15s">
+          <img class="pkg-card__bg"
+            src="https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&q=80&auto=format&fit=crop"
+            alt="Kigali city tour and cultural experience"
+            loading="lazy" width="800" height="420" />
+          <div class="pkg-card__overlay" aria-hidden="true"></div>
+          <div class="pkg-card__body">
+            <span class="pkg-card__tag">Cultural</span>
+            <h3 class="pkg-card__title">Kigali City & Culture Tour</h3>
+            <p class="pkg-card__meta">Kigali, Rwanda · <span>Half Day</span></p>
+            <a href="#contact" class="pkg-card__cta">Enquire Now <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14m-7-7 7 7-7 7"/></svg></a>
+          </div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── CTA BANNER ─── -->
+  <section class="cta-banner" aria-label="Call to action">
+    <div class="container cta-banner__inner">
+      <div class="cta-banner__text fade-up">
+        <p class="section-eyebrow" style="text-align:left">Start Your Adventure</p>
+        <h2 class="cta-banner__title">Rent Your Safari Adventure Today!</h2>
+        <p class="cta-banner__desc">Experience the wild in comfort. Our expert drivers and guides are ready to take you on a journey you'll never forget.</p>
+      </div>
+      <div class="fade-up" style="transition-delay:0.15s">
+        <a href="tel:+250785083553" class="btn-primary" style="font-size:15px;padding:18px 36px">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.68 13a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 2.18h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 9.91a16 16 0 0 0 6.06 6.06l.95-.95a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+          Call Us Now
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── TRUST BAR ─── -->
+  <div class="trust" aria-label="Trust signals">
+    <div class="container trust__inner">
+      <div class="trust__item">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        <span><strong>100%</strong> Insured Fleet</span>
+      </div>
+      <div class="trust__item">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        <span><strong>24/7</strong> Customer Support</span>
+      </div>
+      <div class="trust__item">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        <span><strong>500+</strong> Happy Clients</span>
+      </div>
+      <div class="trust__item">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        <span><strong>5-Star</strong> Rated Service</span>
+      </div>
+      <div class="trust__item">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><rect x="1" y="4" width="22" height="16" rx="2"/><path d="M1 10h22"/></svg>
+        <span><strong>No</strong> Hidden Fees</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── TESTIMONIALS ─── -->
+  <section class="feedback" id="feedback" aria-labelledby="feedback-heading">
+    <div class="container">
+      <div class="section-header fade-up">
+        <p class="section-eyebrow">Client Feedback</p>
+        <h2 class="section-title" id="feedback-heading">What Our Guests Say</h2>
+        <p class="section-desc">Real experiences from travelers who've explored Rwanda and East Africa with us.</p>
+        <div class="divider" aria-hidden="true"></div>
+      </div>
+
+      <div class="feedback__track-wrap fade-up">
+        <div class="feedback__track" id="feedTrack" role="list" aria-label="Testimonials">
+
+          <article class="tcard" role="listitem">
+            <div class="tcard__stars" aria-label="5 out of 5 stars">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+            </div>
+            <blockquote class="tcard__quote">"The gorilla trekking package was absolutely flawless. Our driver knew every trail in Volcanoes National Park. The Landcruiser V8 handled the roads effortlessly — pure luxury in the wild."</blockquote>
+            <div class="tcard__author">
+              <img class="tcard__avatar" src="https://i.pravatar.cc/88?img=11" alt="Portrait of James O." width="44" height="44" loading="lazy" />
+              <div>
+                <p class="tcard__name">James O.</p>
+                <p class="tcard__role">Wildlife Photographer · UK</p>
+              </div>
+            </div>
+          </article>
+
+          <article class="tcard" role="listitem">
+            <div class="tcard__stars" aria-label="5 out of 5 stars">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+            </div>
+            <blockquote class="tcard__quote">"We booked the Presidential Bus for our entire conference delegation — 45 people. PTS delivered on every promise. On time, immaculate interiors, and the most professional team I've worked with in East Africa."</blockquote>
+            <div class="tcard__author">
+              <img class="tcard__avatar" src="https://i.pravatar.cc/88?img=47" alt="Portrait of Amina K." width="44" height="44" loading="lazy" />
+              <div>
+                <p class="tcard__name">Amina K.</p>
+                <p class="tcard__role">Event Director · Rwanda</p>
+              </div>
+            </div>
+          </article>
+
+          <article class="tcard" role="listitem">
+            <div class="tcard__stars" aria-label="5 out of 5 stars">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+            </div>
+            <blockquote class="tcard__quote">"Rented a BMW 750 for a week of business meetings across Kigali. The chauffeur service was outstanding — punctual, discreet, and incredibly courteous. PTS sets a new standard for executive transport in Rwanda."</blockquote>
+            <div class="tcard__author">
+              <img class="tcard__avatar" src="https://i.pravatar.cc/88?img=33" alt="Portrait of Marcus T." width="44" height="44" loading="lazy" />
+              <div>
+                <p class="tcard__name">Marcus T.</p>
+                <p class="tcard__role">Business Executive · Germany</p>
+              </div>
+            </div>
+          </article>
+
+          <article class="tcard" role="listitem">
+            <div class="tcard__stars" aria-label="5 out of 5 stars">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+            </div>
+            <blockquote class="tcard__quote">"Our family of six had the most magical Akagera safari. The pop-up roof on the Landcruiser was perfect for photography. The guide was so knowledgeable about the animals. We'll be back every year!"</blockquote>
+            <div class="tcard__author">
+              <img class="tcard__avatar" src="https://i.pravatar.cc/88?img=5" alt="Portrait of Sophie M." width="44" height="44" loading="lazy" />
+              <div>
+                <p class="tcard__name">Sophie M.</p>
+                <p class="tcard__role">Travel Blogger · France</p>
+              </div>
+            </div>
+          </article>
+
+          <article class="tcard" role="listitem">
+            <div class="tcard__stars" aria-label="5 out of 5 stars">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+            </div>
+            <blockquote class="tcard__quote">"Booked an airport transfer late-night. The driver was waiting, helped with luggage, and even recommended a great restaurant. Small things make a huge difference — PTS understands hospitality."</blockquote>
+            <div class="tcard__author">
+              <img class="tcard__avatar" src="https://i.pravatar.cc/88?img=60" alt="Portrait of David N." width="44" height="44" loading="lazy" />
+              <div>
+                <p class="tcard__name">David N.</p>
+                <p class="tcard__role">NGO Coordinator · Kenya</p>
+              </div>
+            </div>
+          </article>
+
+        </div>
+      </div>
+
+      <div class="feedback__controls" aria-label="Testimonial navigation">
+        <button class="feedback__btn" id="feedPrev" aria-label="Previous testimonials">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
+        </button>
+        <div class="feedback__dots" id="feedDots" role="tablist" aria-label="Testimonial pages"></div>
+        <button class="feedback__btn" id="feedNext" aria-label="Next testimonials">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── INSIGHTS ─── -->
+  <section class="insights" id="insights" aria-labelledby="insights-heading">
+    <div class="container">
+      <div class="section-header fade-up">
+        <p class="section-eyebrow">Insights</p>
+        <h2 class="section-title" id="insights-heading">Travel Tips & Rwanda Stories</h2>
+        <p class="section-desc">Expert guides, destination stories, and insider tips to make your Rwanda journey unforgettable.</p>
+        <div class="divider" aria-hidden="true"></div>
+      </div>
+      <div class="insights__grid">
+
+        <article class="insight-card fade-up">
+          <img class="insight-card__img"
+            src="https://images.unsplash.com/photo-1516026672322-bc52d61a55d5?w=700&q=80&auto=format&fit=crop"
+            alt="Mountain gorilla in Volcanoes National Park" loading="lazy" width="700" height="210" />
+          <div class="insight-card__body">
+            <div class="insight-card__meta">
+              <span class="insight-card__cat">Safari</span>
+              <time class="insight-card__date" datetime="2025-03-12">March 12, 2025</time>
+            </div>
+            <h3 class="insight-card__title">The Ultimate Guide to Gorilla Trekking in Rwanda</h3>
+            <p class="insight-card__excerpt">Everything you need to know before embarking on a once-in-a-lifetime gorilla trek in Volcanoes National Park — permits, timing, what to pack, and how to make the most of your 60 minutes with the mountain gorillas.</p>
+            <a href="#contact" class="insight-card__read" aria-label="Read: The Ultimate Guide to Gorilla Trekking in Rwanda">
+              Read Article
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14m-7-7 7 7-7 7"/></svg>
+            </a>
+          </div>
+        </article>
+
+        <article class="insight-card fade-up" style="transition-delay:0.1s">
+          <img class="insight-card__img"
+            src="https://images.unsplash.com/photo-1596464716127-f2a82984de30?w=700&q=80&auto=format&fit=crop"
+            alt="Kigali city skyline at sunset" loading="lazy" width="700" height="210" />
+          <div class="insight-card__body">
+            <div class="insight-card__meta">
+              <span class="insight-card__cat">Culture</span>
+              <time class="insight-card__date" datetime="2025-02-28">Feb 28, 2025</time>
+            </div>
+            <h3 class="insight-card__title">Why Kigali Is Africa's Most Underrated City</h3>
+            <p class="insight-card__excerpt">Clean streets, world-class restaurants, vibrant art galleries, and a startup scene that's drawing global attention. Here's why Kigali deserves more time on every traveler's itinerary.</p>
+            <a href="#contact" class="insight-card__read" aria-label="Read: Why Kigali Is Africa's Most Underrated City">
+              Read Article
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14m-7-7 7 7-7 7"/></svg>
+            </a>
+          </div>
+        </article>
+
+        <article class="insight-card fade-up" style="transition-delay:0.2s">
+          <img class="insight-card__img"
+            src="https://images.unsplash.com/photo-1547471080-7cc2caa01a7e?w=700&q=80&auto=format&fit=crop"
+            alt="Elephants at Akagera National Park" loading="lazy" width="700" height="210" />
+          <div class="insight-card__body">
+            <div class="insight-card__meta">
+              <span class="insight-card__cat">Wildlife</span>
+              <time class="insight-card__date" datetime="2025-02-10">Feb 10, 2025</time>
+            </div>
+            <h3 class="insight-card__title">Akagera National Park: The Big Five Safari You Didn't Know About</h3>
+            <p class="insight-card__excerpt">Akagera is Rwanda's hidden gem for wildlife lovers. Lions, elephants, hippos, and the majestic shoebill stork await — and unlike East African parks, you'll often have the savannah entirely to yourself.</p>
+            <a href="#contact" class="insight-card__read" aria-label="Read: Akagera National Park Safari">
+              Read Article
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14m-7-7 7 7-7 7"/></svg>
+            </a>
+          </div>
+        </article>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── CONTACT ─── -->
+  <section class="contact" id="contact" aria-labelledby="contact-heading">
+    <div class="container">
+      <div class="section-header fade-up">
+        <p class="section-eyebrow">Get In Touch</p>
+        <h2 class="section-title" id="contact-heading">Ready to Start Your Journey?</h2>
+        <p class="section-desc">Send us a message and our team will respond within the hour.</p>
+        <div class="divider" aria-hidden="true"></div>
+      </div>
+      <div class="contact__grid">
+        <div class="contact__info fade-up">
+          <div class="contact__item">
+            <div class="contact__icon" aria-hidden="true">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.68 13a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 2.18h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 9.91a16 16 0 0 0 6.06 6.06l.95-.95a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+            </div>
+            <div>
+              <p class="contact__item-label">Phone</p>
+              <a href="tel:+250785083553" class="contact__item-value">(+250) 785 083 553</a>
+            </div>
+          </div>
+          <div class="contact__item">
+            <div class="contact__icon" aria-hidden="true">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+            </div>
+            <div>
+              <p class="contact__item-label">Email</p>
+              <a href="mailto:info@pts.rw" class="contact__item-value">info@pts.rw</a>
+            </div>
+          </div>
+          <div class="contact__item">
+            <div class="contact__icon" aria-hidden="true">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            </div>
+            <div>
+              <p class="contact__item-label">Address</p>
+              <p class="contact__item-value">KK 500 Street, Kigali, Rwanda</p>
+            </div>
+          </div>
+          <div>
+            <p class="contact__item-label" style="margin-bottom:12px">Follow Us</p>
+            <div class="contact__social" role="list" aria-label="Social media links">
+              <a href="#" class="contact__soc-btn" aria-label="Facebook" role="listitem">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>
+              </a>
+              <a href="#" class="contact__soc-btn" aria-label="Twitter / X" role="listitem">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M22 4s-.7 2.1-2 3.4c1.6 10-9.4 17.3-18 11.6 2.2.1 4.4-.6 6-2C3 15.5.5 9.6 3 5c2.2 2.6 5.6 4.1 9 4-.9-4.2 4-6.6 7-3.8 1.1 0 3-1.2 3-1.2z"/></svg>
+              </a>
+              <a href="#" class="contact__soc-btn" aria-label="Instagram" role="listitem">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
+              </a>
+              <a href="#" class="contact__soc-btn" aria-label="LinkedIn" role="listitem">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <form class="contact__form fade-up" style="transition-delay:0.15s" novalidate aria-label="Booking enquiry form">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="fname">First Name <span aria-label="required" style="color:var(--color-gold)">*</span></label>
+              <input type="text" id="fname" name="fname" placeholder="John" autocomplete="given-name" required />
+            </div>
+            <div class="form-group">
+              <label for="lname">Last Name <span aria-label="required" style="color:var(--color-gold)">*</span></label>
+              <input type="text" id="lname" name="lname" placeholder="Smith" autocomplete="family-name" required />
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="email">Email Address <span aria-label="required" style="color:var(--color-gold)">*</span></label>
+            <input type="email" id="email" name="email" placeholder="john@example.com" autocomplete="email" required />
+          </div>
+          <div class="form-group">
+            <label for="phone">Phone Number</label>
+            <input type="tel" id="phone" name="phone" placeholder="+250 785 000 000" autocomplete="tel" />
+          </div>
+          <div class="form-group">
+            <label for="service">Service Required <span aria-label="required" style="color:var(--color-gold)">*</span></label>
+            <select id="service" name="service" required>
+              <option value="" disabled selected>Select a service…</option>
+              <option value="luxury">Luxury Car Rental</option>
+              <option value="safari">Safari Package</option>
+              <option value="group">Group Transfer</option>
+              <option value="airport">Airport Transfer</option>
+              <option value="custom">Custom Request</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="message">Message</label>
+            <textarea id="message" name="message" placeholder="Tell us about your trip plans, dates, number of guests…"></textarea>
+          </div>
+          <button type="submit" class="btn-primary" style="width:100%;justify-content:center;font-size:14px">
+            Send Enquiry
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          </button>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── FOOTER ─── -->
+  <footer class="footer" aria-label="Site footer">
+    <div class="container">
+      <div class="footer__grid">
+        <div>
+          <div class="footer__brand-logo">PTS</div>
+          <p class="footer__brand-desc">Premier Transport & Tour Services. Luxury car rentals and curated safari experiences across Rwanda and East Africa.</p>
+          <div class="contact__social" role="list" aria-label="Social media">
+            <a href="#" class="contact__soc-btn" aria-label="Facebook" role="listitem">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>
+            </a>
+            <a href="#" class="contact__soc-btn" aria-label="Twitter" role="listitem">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M22 4s-.7 2.1-2 3.4c1.6 10-9.4 17.3-18 11.6 2.2.1 4.4-.6 6-2C3 15.5.5 9.6 3 5c2.2 2.6 5.6 4.1 9 4-.9-4.2 4-6.6 7-3.8 1.1 0 3-1.2 3-1.2z"/></svg>
+            </a>
+            <a href="#" class="contact__soc-btn" aria-label="Instagram" role="listitem">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="2" y="2" width="20" height="20" rx="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
+            </a>
+            <a href="#" class="contact__soc-btn" aria-label="LinkedIn" role="listitem">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>
+            </a>
+          </div>
+        </div>
+        <div>
+          <p class="footer__col-title">Services</p>
+          <ul class="footer__links">
+            <li><a href="#fleet">Car Rental</a></li>
+            <li><a href="#packages">Travel Packages</a></li>
+            <li><a href="#packages">Safari Tours</a></li>
+            <li><a href="#contact">Airport Transfers</a></li>
+            <li><a href="#contact">Corporate Travel</a></li>
+          </ul>
+        </div>
+        <div>
+          <p class="footer__col-title">Company</p>
+          <ul class="footer__links">
+            <li><a href="#home">Home</a></li>
+            <li><a href="#how">How It Works</a></li>
+            <li><a href="#feedback">Feedback</a></li>
+            <li><a href="#insights">Insights</a></li>
+            <li><a href="#contact">Contact</a></li>
+          </ul>
+        </div>
+        <div>
+          <p class="footer__col-title">Contact</p>
+          <ul class="footer__links">
+            <li><a href="tel:+250785083553">(+250) 785 083 553</a></li>
+            <li><a href="mailto:info@pts.rw">info@pts.rw</a></li>
+            <li><a href="#">KK 500 Street, Kigali</a></li>
+            <li><a href="#">Visit Us Today</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer__bottom">
+        <p>© 2025 PTS Rwanda · All rights reserved</p>
+        <nav class="footer__bottom-links" aria-label="Legal links">
+          <a href="#">Privacy Policy</a>
+          <a href="#">Terms of Service</a>
+          <a href="#">Sitemap</a>
+        </nav>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // ── Sticky navbar
+    const nav = document.getElementById('navbar');
+    const onScroll = () => nav.classList.toggle('scrolled', window.scrollY > 40);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+
+    // ── Mobile menu toggle
+    const burger = document.getElementById('burger');
+    const mobileMenu = document.getElementById('mobileMenu');
+    burger.addEventListener('click', () => {
+      const open = mobileMenu.classList.toggle('open');
+      burger.setAttribute('aria-expanded', String(open));
+    });
+    document.querySelectorAll('.mobile-link').forEach(link => {
+      link.addEventListener('click', () => {
+        mobileMenu.classList.remove('open');
+        burger.setAttribute('aria-expanded', 'false');
+      });
+    });
+
+    // ── Fleet tabs
+    const tabs = document.querySelectorAll('.fleet__tab');
+    const panels = document.querySelectorAll('[role="tabpanel"]');
+    tabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        tabs.forEach(t => { t.classList.remove('active'); t.setAttribute('aria-selected','false'); });
+        panels.forEach(p => p.setAttribute('hidden',''));
+        tab.classList.add('active');
+        tab.setAttribute('aria-selected', 'true');
+        const panel = document.getElementById(tab.getAttribute('aria-controls'));
+        panel.removeAttribute('hidden');
+        panel.querySelectorAll('.fade-up').forEach(el => el.classList.remove('visible'));
+        setTimeout(() => panel.querySelectorAll('.fade-up').forEach(el => el.classList.add('visible')), 50);
+      });
+    });
+
+    // ── Scroll-triggered fade-up
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => { if (entry.isIntersecting) { entry.target.classList.add('visible'); observer.unobserve(entry.target); }});
+    }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+    document.querySelectorAll('.fade-up').forEach(el => observer.observe(el));
+
+    // ── Testimonial carousel
+    (() => {
+      const track  = document.getElementById('feedTrack');
+      const cards  = track.querySelectorAll('.tcard');
+      const dots   = document.getElementById('feedDots');
+      const prev   = document.getElementById('feedPrev');
+      const next   = document.getElementById('feedNext');
+      const GAP    = 24;
+      let   current = 0;
+
+      const perView = () => window.innerWidth < 600 ? 1 : window.innerWidth < 1024 ? 2 : 3;
+
+      const pages = () => Math.ceil(cards.length / perView());
+
+      const render = () => {
+        const pv = perView();
+        const cardW = track.parentElement.offsetWidth / pv - GAP * (pv - 1) / pv;
+        cards.forEach(c => { c.style.flex = `0 0 ${cardW}px`; });
+        const offset = current * (cardW + GAP) * pv;
+        track.style.transform = `translateX(-${offset}px)`;
+        dots.querySelectorAll('.feedback__dot').forEach((d, i) => d.classList.toggle('active', i === current));
+      };
+
+      // build dots
+      const buildDots = () => {
+        dots.innerHTML = '';
+        for (let i = 0; i < pages(); i++) {
+          const d = document.createElement('button');
+          d.className = 'feedback__dot' + (i === 0 ? ' active' : '');
+          d.setAttribute('aria-label', `Go to testimonials page ${i + 1}`);
+          d.setAttribute('role', 'tab');
+          d.addEventListener('click', () => { current = i; render(); });
+          dots.appendChild(d);
+        }
+      };
+
+      prev.addEventListener('click', () => { current = (current - 1 + pages()) % pages(); render(); });
+      next.addEventListener('click', () => { current = (current + 1) % pages(); render(); });
+
+      buildDots();
+      render();
+      window.addEventListener('resize', () => { buildDots(); current = 0; render(); });
+
+      // auto-advance every 5s
+      let autoId = setInterval(() => { current = (current + 1) % pages(); render(); }, 5000);
+      [prev, next, dots].forEach(el => el.addEventListener('click', () => { clearInterval(autoId); autoId = setInterval(() => { current = (current + 1) % pages(); render(); }, 5000); }));
+    })();
+
+    // ── Form submit
+    document.querySelector('.contact__form').addEventListener('submit', e => {
+      e.preventDefault();
+      const btn = e.target.querySelector('[type=submit]');
+      btn.textContent = 'Sending…';
+      btn.disabled = true;
+      setTimeout(() => {
+        btn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg> Message Sent!`;
+        btn.style.background = '#2d6a4f';
+        btn.style.color = '#fff';
+      }, 1200);
+    });
+  </script>
+</body>
+</html>
