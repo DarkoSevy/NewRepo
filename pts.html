@@ -633,6 +633,178 @@
     .form-group select option { background: var(--color-card); }
     .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 
+    /* ─── TRUST BAR ─── */
+    .trust {
+      padding: 40px 0;
+      background: var(--color-card);
+      border-top: 1px solid var(--color-border);
+      border-bottom: 1px solid var(--color-border);
+    }
+    .trust__inner {
+      display: flex; align-items: center; justify-content: center;
+      flex-wrap: wrap; gap: 48px;
+    }
+    .trust__item {
+      display: flex; align-items: center; gap: 12px;
+      font-size: 13px; font-weight: 500;
+      color: var(--color-muted);
+      letter-spacing: 0.04em;
+    }
+    .trust__item svg { color: var(--color-gold); flex-shrink: 0; }
+    .trust__item strong { color: var(--color-cream); }
+
+    /* ─── TESTIMONIALS ─── */
+    .feedback { padding: 112px 0; }
+    .feedback__track-wrap {
+      overflow: hidden; position: relative;
+    }
+    .feedback__track-wrap::before,
+    .feedback__track-wrap::after {
+      content: '';
+      position: absolute; top: 0; bottom: 0; width: 80px; z-index: 2;
+      pointer-events: none;
+    }
+    .feedback__track-wrap::before {
+      left: 0;
+      background: linear-gradient(to right, var(--color-dark), transparent);
+    }
+    .feedback__track-wrap::after {
+      right: 0;
+      background: linear-gradient(to left, var(--color-dark), transparent);
+    }
+    .feedback__track {
+      display: flex; gap: 24px;
+      transition: transform 0.5s cubic-bezier(0.4,0,0.2,1);
+      will-change: transform;
+    }
+    .tcard {
+      flex: 0 0 360px;
+      background: var(--color-card);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: 32px;
+      transition: border-color 0.25s;
+    }
+    .tcard:hover { border-color: rgba(201,165,71,0.35); }
+    .tcard__stars {
+      display: flex; gap: 4px; margin-bottom: 16px;
+    }
+    .tcard__stars svg { color: var(--color-gold); }
+    .tcard__quote {
+      font-family: var(--font-display);
+      font-size: 17px; line-height: 1.65;
+      color: rgba(245,240,232,0.85);
+      margin-bottom: 24px;
+      font-style: italic;
+    }
+    .tcard__author {
+      display: flex; align-items: center; gap: 12px;
+      padding-top: 20px;
+      border-top: 1px solid var(--color-border);
+    }
+    .tcard__avatar {
+      width: 44px; height: 44px; border-radius: 50%;
+      object-fit: cover;
+      background: var(--color-mid);
+      flex-shrink: 0;
+    }
+    .tcard__name { font-size: 14px; font-weight: 600; }
+    .tcard__role { font-size: 12px; color: var(--color-muted); margin-top: 2px; }
+    .feedback__controls {
+      display: flex; align-items: center; justify-content: center;
+      gap: 16px; margin-top: 40px;
+    }
+    .feedback__btn {
+      width: 44px; height: 44px; border-radius: 50%;
+      background: var(--color-card);
+      border: 1px solid var(--color-border);
+      color: var(--color-cream);
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      transition: background 0.2s, border-color 0.2s, color 0.2s;
+    }
+    .feedback__btn:hover {
+      background: var(--color-gold);
+      border-color: var(--color-gold);
+      color: var(--color-dark);
+    }
+    .feedback__dots {
+      display: flex; gap: 8px;
+    }
+    .feedback__dot {
+      width: 8px; height: 8px; border-radius: 4px;
+      background: var(--color-border);
+      transition: background 0.25s, width 0.25s;
+      cursor: pointer;
+    }
+    .feedback__dot.active {
+      width: 24px;
+      background: var(--color-gold);
+    }
+
+    /* ─── INSIGHTS ─── */
+    .insights { padding: 112px 0; background: var(--color-deep); }
+    .insights__grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 24px;
+    }
+    .insight-card {
+      background: var(--color-card);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      display: flex; flex-direction: column;
+      transition: transform 0.25s, box-shadow 0.25s, border-color 0.25s;
+    }
+    .insight-card:hover {
+      transform: translateY(-5px);
+      box-shadow: var(--shadow-gold);
+      border-color: rgba(201,165,71,0.3);
+    }
+    .insight-card__img {
+      width: 100%; height: 210px;
+      object-fit: cover;
+      background: var(--color-mid);
+    }
+    .insight-card__body { padding: 28px; flex: 1; display: flex; flex-direction: column; }
+    .insight-card__meta {
+      display: flex; align-items: center; gap: 12px;
+      margin-bottom: 12px;
+    }
+    .insight-card__cat {
+      display: inline-block; padding: 3px 10px;
+      background: rgba(201,165,71,0.12);
+      border: 1px solid rgba(201,165,71,0.2);
+      border-radius: 20px;
+      font-size: 11px; font-weight: 600;
+      letter-spacing: 0.1em; text-transform: uppercase;
+      color: var(--color-gold);
+    }
+    .insight-card__date {
+      font-size: 12px; color: var(--color-muted);
+    }
+    .insight-card__title {
+      font-family: var(--font-display);
+      font-size: 19px; font-weight: 600; line-height: 1.3;
+      margin-bottom: 10px;
+      transition: color 0.2s;
+    }
+    .insight-card:hover .insight-card__title { color: var(--color-gold); }
+    .insight-card__excerpt {
+      font-size: 14px; line-height: 1.7;
+      color: rgba(245,240,232,0.55);
+      flex: 1;
+      margin-bottom: 20px;
+    }
+    .insight-card__read {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 13px; font-weight: 600;
+      color: var(--color-gold);
+      transition: gap 0.2s;
+    }
+    .insight-card:hover .insight-card__read { gap: 10px; }
+
     /* ─── FOOTER ─── */
     .footer {
       background: var(--color-dark);
@@ -735,6 +907,8 @@
         <li><a href="#fleet">Car Rental</a></li>
         <li><a href="#packages">Travel Packages</a></li>
         <li><a href="#how">How It Works</a></li>
+        <li><a href="#feedback">Feedback</a></li>
+        <li><a href="#insights">Insights</a></li>
         <li><a href="#contact">Contact</a></li>
       </ul>
       <a href="#contact" class="nav__cta">Book Now</a>
@@ -750,6 +924,8 @@
     <a href="#fleet" class="mobile-link">Car Rental</a>
     <a href="#packages" class="mobile-link">Travel Packages</a>
     <a href="#how" class="mobile-link">How It Works</a>
+    <a href="#feedback" class="mobile-link">Feedback</a>
+    <a href="#insights" class="mobile-link">Insights</a>
     <a href="#contact" class="mobile-link">Contact</a>
     <a href="#contact" class="nav__cta mobile-link">Book Now</a>
   </div>
@@ -1175,6 +1351,219 @@
     </div>
   </section>
 
+  <!-- ─── TRUST BAR ─── -->
+  <div class="trust" aria-label="Trust signals">
+    <div class="container trust__inner">
+      <div class="trust__item">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        <span><strong>100%</strong> Insured Fleet</span>
+      </div>
+      <div class="trust__item">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        <span><strong>24/7</strong> Customer Support</span>
+      </div>
+      <div class="trust__item">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        <span><strong>500+</strong> Happy Clients</span>
+      </div>
+      <div class="trust__item">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        <span><strong>5-Star</strong> Rated Service</span>
+      </div>
+      <div class="trust__item">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><rect x="1" y="4" width="22" height="16" rx="2"/><path d="M1 10h22"/></svg>
+        <span><strong>No</strong> Hidden Fees</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── TESTIMONIALS ─── -->
+  <section class="feedback" id="feedback" aria-labelledby="feedback-heading">
+    <div class="container">
+      <div class="section-header fade-up">
+        <p class="section-eyebrow">Client Feedback</p>
+        <h2 class="section-title" id="feedback-heading">What Our Guests Say</h2>
+        <p class="section-desc">Real experiences from travelers who've explored Rwanda and East Africa with us.</p>
+        <div class="divider" aria-hidden="true"></div>
+      </div>
+
+      <div class="feedback__track-wrap fade-up">
+        <div class="feedback__track" id="feedTrack" role="list" aria-label="Testimonials">
+
+          <article class="tcard" role="listitem">
+            <div class="tcard__stars" aria-label="5 out of 5 stars">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+            </div>
+            <blockquote class="tcard__quote">"The gorilla trekking package was absolutely flawless. Our driver knew every trail in Volcanoes National Park. The Landcruiser V8 handled the roads effortlessly — pure luxury in the wild."</blockquote>
+            <div class="tcard__author">
+              <img class="tcard__avatar" src="https://i.pravatar.cc/88?img=11" alt="Portrait of James O." width="44" height="44" loading="lazy" />
+              <div>
+                <p class="tcard__name">James O.</p>
+                <p class="tcard__role">Wildlife Photographer · UK</p>
+              </div>
+            </div>
+          </article>
+
+          <article class="tcard" role="listitem">
+            <div class="tcard__stars" aria-label="5 out of 5 stars">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+            </div>
+            <blockquote class="tcard__quote">"We booked the Presidential Bus for our entire conference delegation — 45 people. PTS delivered on every promise. On time, immaculate interiors, and the most professional team I've worked with in East Africa."</blockquote>
+            <div class="tcard__author">
+              <img class="tcard__avatar" src="https://i.pravatar.cc/88?img=47" alt="Portrait of Amina K." width="44" height="44" loading="lazy" />
+              <div>
+                <p class="tcard__name">Amina K.</p>
+                <p class="tcard__role">Event Director · Rwanda</p>
+              </div>
+            </div>
+          </article>
+
+          <article class="tcard" role="listitem">
+            <div class="tcard__stars" aria-label="5 out of 5 stars">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+            </div>
+            <blockquote class="tcard__quote">"Rented a BMW 750 for a week of business meetings across Kigali. The chauffeur service was outstanding — punctual, discreet, and incredibly courteous. PTS sets a new standard for executive transport in Rwanda."</blockquote>
+            <div class="tcard__author">
+              <img class="tcard__avatar" src="https://i.pravatar.cc/88?img=33" alt="Portrait of Marcus T." width="44" height="44" loading="lazy" />
+              <div>
+                <p class="tcard__name">Marcus T.</p>
+                <p class="tcard__role">Business Executive · Germany</p>
+              </div>
+            </div>
+          </article>
+
+          <article class="tcard" role="listitem">
+            <div class="tcard__stars" aria-label="5 out of 5 stars">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+            </div>
+            <blockquote class="tcard__quote">"Our family of six had the most magical Akagera safari. The pop-up roof on the Landcruiser was perfect for photography. The guide was so knowledgeable about the animals. We'll be back every year!"</blockquote>
+            <div class="tcard__author">
+              <img class="tcard__avatar" src="https://i.pravatar.cc/88?img=5" alt="Portrait of Sophie M." width="44" height="44" loading="lazy" />
+              <div>
+                <p class="tcard__name">Sophie M.</p>
+                <p class="tcard__role">Travel Blogger · France</p>
+              </div>
+            </div>
+          </article>
+
+          <article class="tcard" role="listitem">
+            <div class="tcard__stars" aria-label="5 out of 5 stars">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+            </div>
+            <blockquote class="tcard__quote">"Booked an airport transfer late-night. The driver was waiting, helped with luggage, and even recommended a great restaurant. Small things make a huge difference — PTS understands hospitality."</blockquote>
+            <div class="tcard__author">
+              <img class="tcard__avatar" src="https://i.pravatar.cc/88?img=60" alt="Portrait of David N." width="44" height="44" loading="lazy" />
+              <div>
+                <p class="tcard__name">David N.</p>
+                <p class="tcard__role">NGO Coordinator · Kenya</p>
+              </div>
+            </div>
+          </article>
+
+        </div>
+      </div>
+
+      <div class="feedback__controls" aria-label="Testimonial navigation">
+        <button class="feedback__btn" id="feedPrev" aria-label="Previous testimonials">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
+        </button>
+        <div class="feedback__dots" id="feedDots" role="tablist" aria-label="Testimonial pages"></div>
+        <button class="feedback__btn" id="feedNext" aria-label="Next testimonials">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── INSIGHTS ─── -->
+  <section class="insights" id="insights" aria-labelledby="insights-heading">
+    <div class="container">
+      <div class="section-header fade-up">
+        <p class="section-eyebrow">Insights</p>
+        <h2 class="section-title" id="insights-heading">Travel Tips & Rwanda Stories</h2>
+        <p class="section-desc">Expert guides, destination stories, and insider tips to make your Rwanda journey unforgettable.</p>
+        <div class="divider" aria-hidden="true"></div>
+      </div>
+      <div class="insights__grid">
+
+        <article class="insight-card fade-up">
+          <img class="insight-card__img"
+            src="https://images.unsplash.com/photo-1516026672322-bc52d61a55d5?w=700&q=80&auto=format&fit=crop"
+            alt="Mountain gorilla in Volcanoes National Park" loading="lazy" width="700" height="210" />
+          <div class="insight-card__body">
+            <div class="insight-card__meta">
+              <span class="insight-card__cat">Safari</span>
+              <time class="insight-card__date" datetime="2025-03-12">March 12, 2025</time>
+            </div>
+            <h3 class="insight-card__title">The Ultimate Guide to Gorilla Trekking in Rwanda</h3>
+            <p class="insight-card__excerpt">Everything you need to know before embarking on a once-in-a-lifetime gorilla trek in Volcanoes National Park — permits, timing, what to pack, and how to make the most of your 60 minutes with the mountain gorillas.</p>
+            <a href="#contact" class="insight-card__read" aria-label="Read: The Ultimate Guide to Gorilla Trekking in Rwanda">
+              Read Article
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14m-7-7 7 7-7 7"/></svg>
+            </a>
+          </div>
+        </article>
+
+        <article class="insight-card fade-up" style="transition-delay:0.1s">
+          <img class="insight-card__img"
+            src="https://images.unsplash.com/photo-1596464716127-f2a82984de30?w=700&q=80&auto=format&fit=crop"
+            alt="Kigali city skyline at sunset" loading="lazy" width="700" height="210" />
+          <div class="insight-card__body">
+            <div class="insight-card__meta">
+              <span class="insight-card__cat">Culture</span>
+              <time class="insight-card__date" datetime="2025-02-28">Feb 28, 2025</time>
+            </div>
+            <h3 class="insight-card__title">Why Kigali Is Africa's Most Underrated City</h3>
+            <p class="insight-card__excerpt">Clean streets, world-class restaurants, vibrant art galleries, and a startup scene that's drawing global attention. Here's why Kigali deserves more time on every traveler's itinerary.</p>
+            <a href="#contact" class="insight-card__read" aria-label="Read: Why Kigali Is Africa's Most Underrated City">
+              Read Article
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14m-7-7 7 7-7 7"/></svg>
+            </a>
+          </div>
+        </article>
+
+        <article class="insight-card fade-up" style="transition-delay:0.2s">
+          <img class="insight-card__img"
+            src="https://images.unsplash.com/photo-1547471080-7cc2caa01a7e?w=700&q=80&auto=format&fit=crop"
+            alt="Elephants at Akagera National Park" loading="lazy" width="700" height="210" />
+          <div class="insight-card__body">
+            <div class="insight-card__meta">
+              <span class="insight-card__cat">Wildlife</span>
+              <time class="insight-card__date" datetime="2025-02-10">Feb 10, 2025</time>
+            </div>
+            <h3 class="insight-card__title">Akagera National Park: The Big Five Safari You Didn't Know About</h3>
+            <p class="insight-card__excerpt">Akagera is Rwanda's hidden gem for wildlife lovers. Lions, elephants, hippos, and the majestic shoebill stork await — and unlike East African parks, you'll often have the savannah entirely to yourself.</p>
+            <a href="#contact" class="insight-card__read" aria-label="Read: Akagera National Park Safari">
+              Read Article
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14m-7-7 7 7-7 7"/></svg>
+            </a>
+          </div>
+        </article>
+
+      </div>
+    </div>
+  </section>
+
   <!-- ─── CONTACT ─── -->
   <section class="contact" id="contact" aria-labelledby="contact-heading">
     <div class="container">
@@ -1312,8 +1701,8 @@
           <ul class="footer__links">
             <li><a href="#home">Home</a></li>
             <li><a href="#how">How It Works</a></li>
-            <li><a href="#contact">Feedback</a></li>
-            <li><a href="#contact">Insights</a></li>
+            <li><a href="#feedback">Feedback</a></li>
+            <li><a href="#insights">Insights</a></li>
             <li><a href="#contact">Contact</a></li>
           </ul>
         </div>
@@ -1380,6 +1769,54 @@
       entries.forEach(entry => { if (entry.isIntersecting) { entry.target.classList.add('visible'); observer.unobserve(entry.target); }});
     }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
     document.querySelectorAll('.fade-up').forEach(el => observer.observe(el));
+
+    // ── Testimonial carousel
+    (() => {
+      const track  = document.getElementById('feedTrack');
+      const cards  = track.querySelectorAll('.tcard');
+      const dots   = document.getElementById('feedDots');
+      const prev   = document.getElementById('feedPrev');
+      const next   = document.getElementById('feedNext');
+      const GAP    = 24;
+      let   current = 0;
+
+      const perView = () => window.innerWidth < 600 ? 1 : window.innerWidth < 1024 ? 2 : 3;
+
+      const pages = () => Math.ceil(cards.length / perView());
+
+      const render = () => {
+        const pv = perView();
+        const cardW = track.parentElement.offsetWidth / pv - GAP * (pv - 1) / pv;
+        cards.forEach(c => { c.style.flex = `0 0 ${cardW}px`; });
+        const offset = current * (cardW + GAP) * pv;
+        track.style.transform = `translateX(-${offset}px)`;
+        dots.querySelectorAll('.feedback__dot').forEach((d, i) => d.classList.toggle('active', i === current));
+      };
+
+      // build dots
+      const buildDots = () => {
+        dots.innerHTML = '';
+        for (let i = 0; i < pages(); i++) {
+          const d = document.createElement('button');
+          d.className = 'feedback__dot' + (i === 0 ? ' active' : '');
+          d.setAttribute('aria-label', `Go to testimonials page ${i + 1}`);
+          d.setAttribute('role', 'tab');
+          d.addEventListener('click', () => { current = i; render(); });
+          dots.appendChild(d);
+        }
+      };
+
+      prev.addEventListener('click', () => { current = (current - 1 + pages()) % pages(); render(); });
+      next.addEventListener('click', () => { current = (current + 1) % pages(); render(); });
+
+      buildDots();
+      render();
+      window.addEventListener('resize', () => { buildDots(); current = 0; render(); });
+
+      // auto-advance every 5s
+      let autoId = setInterval(() => { current = (current + 1) % pages(); render(); }, 5000);
+      [prev, next, dots].forEach(el => el.addEventListener('click', () => { clearInterval(autoId); autoId = setInterval(() => { current = (current + 1) % pages(); render(); }, 5000); }));
+    })();
 
     // ── Form submit
     document.querySelector('.contact__form').addEventListener('submit', e => {
