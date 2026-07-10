@@ -236,6 +236,72 @@ export class JournalService {
     });
   }
 
+  /**
+   * Posts a SYSTEM entry (spec Phase 2 §6: invoices, bills, payments,
+   * expenses all post via this, never through the MANUAL draft/post flow).
+   * Callable inside any caller's own `forTenant` transaction so the GL post
+   * commits atomically with the document state change that triggered it —
+   * e.g. invoice ISSUED + receipt + GL entry all succeed or all roll back
+   * together. Must not open its own transaction.
+   */
+  async postSystemEntry(
+    tx: TenantTx,
+    params: {
+      tenantId: string;
+      entryDate: Date;
+      memo?: string;
+      sourceDocumentRef: { type: string; id: string; number?: string | number };
+      lines: { accountId: string; direction: 'DEBIT' | 'CREDIT'; amountMinor: bigint; currency: string; memo?: string }[];
+      actorId?: string | null;
+    },
+  ) {
+    if (params.lines.length === 0) {
+      throw new BadRequestException('Cannot post a system entry with no lines');
+    }
+    this.assertBalanced(params.lines);
+    await this.assertLinesPostable(tx, params.lines);
+    await this.periods.assertDateInOpenPeriod(tx, params.tenantId, params.entryDate);
+
+    const entryNo = await this.nextEntryNo(tx, params.tenantId);
+
+    const entry = await tx.journalEntry.create({
+      data: {
+        tenantId: params.tenantId,
+        entryNo,
+        entryDate: params.entryDate,
+        memo: params.memo,
+        status: 'POSTED',
+        source: 'SYSTEM',
+        sourceDocumentRef: params.sourceDocumentRef as any, // eslint-disable-line @typescript-eslint/no-explicit-any
+        postedAt: new Date(),
+        postedBy: params.actorId ?? null,
+        createdBy: params.actorId ?? null,
+        lines: {
+          create: params.lines.map((line) => ({
+            tenantId: params.tenantId,
+            accountId: line.accountId,
+            direction: line.direction,
+            amountMinor: line.amountMinor,
+            currency: line.currency,
+            memo: line.memo,
+          })),
+        },
+      },
+      include: { lines: true },
+    });
+
+    await this.audit.record(tx, {
+      tenantId: params.tenantId,
+      actorId: params.actorId,
+      action: 'SYSTEM_JOURNAL_ENTRY_POSTED',
+      entity: 'journal_entry',
+      entityId: entry.id,
+      payload: { entryNo: entryNo.toString(), sourceDocumentRef: params.sourceDocumentRef },
+    });
+
+    return entry;
+  }
+
   private assertBalanced(lines: { direction: string; amountMinor: bigint }[]) {
     let debit = 0n;
     let credit = 0n;

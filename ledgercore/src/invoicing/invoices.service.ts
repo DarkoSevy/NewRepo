@@ -1,0 +1,457 @@
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { InvoiceStatus } from '@prisma/client';
+import { PrismaService, TenantTx } from '../prisma/prisma.service';
+import { AuditService } from '../audit/audit.service';
+import { JournalService } from '../journal/journal.service';
+import { TaxRatesService } from '../tax/tax-rates.service';
+import { EbmService } from '../ebm/ebm.service';
+import { DocumentNumberingService } from '../common/document-numbering.service';
+import { ControlAccountsService } from '../common/control-accounts.service';
+import { AuthenticatedUser } from '../common/interfaces/request-context';
+import { computeLine } from '../tax/vat-calc';
+import { CreateInvoiceDto } from './dto/create-invoice.dto';
+import { UpdateInvoiceDto } from './dto/update-invoice.dto';
+import { CreateInvoiceLineDto } from './dto/create-invoice-line.dto';
+import { CertifyReceipt } from '../ebm/ebm-adapter.interface';
+import { ReceiptRenderer } from './receipt-renderer';
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function backoffMs(attempt: number) {
+  const base = Number(process.env.CERTIFY_BACKOFF_BASE_MS ?? 500);
+  return base * 2 ** (attempt - 1);
+}
+
+const MAX_CERTIFY_ATTEMPTS = 5;
+
+@Injectable()
+export class InvoicesService {
+  private readonly logger = new Logger(InvoicesService.name);
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly audit: AuditService,
+    private readonly journal: JournalService,
+    private readonly taxRates: TaxRatesService,
+    private readonly ebm: EbmService,
+    private readonly docNumbering: DocumentNumberingService,
+    private readonly controlAccounts: ControlAccountsService,
+    private readonly receiptRenderer: ReceiptRenderer,
+  ) {}
+
+  list(tenantId: string, filters: { status?: InvoiceStatus; contactId?: string }) {
+    return this.prisma.forTenant(tenantId, (tx) =>
+      tx.invoice.findMany({
+        where: { status: filters.status, contactId: filters.contactId },
+        include: { lines: true },
+        orderBy: [{ createdAt: 'desc' }],
+      }),
+    );
+  }
+
+  async findOne(tenantId: string, id: string) {
+    const invoice = await this.prisma.forTenant(tenantId, (tx) =>
+      tx.invoice.findUnique({ where: { id }, include: { lines: true, contact: true } }),
+    );
+    if (!invoice) throw new NotFoundException('Invoice not found');
+    return invoice;
+  }
+
+  async create(user: AuthenticatedUser, dto: CreateInvoiceDto) {
+    return this.prisma.forTenant(user.tenantId, async (tx) => {
+      const tenant = await tx.tenant.findUniqueOrThrow({ where: { id: user.tenantId } });
+      const contact = await tx.contact.findUnique({ where: { id: dto.contactId } });
+      if (!contact) throw new NotFoundException('Contact not found');
+
+      const computed = await this.computeLines(tx, user.tenantId, tenant.pricingMode, dto.lines);
+
+      const invoice = await tx.invoice.create({
+        data: {
+          tenantId: user.tenantId,
+          contactId: dto.contactId,
+          kind: dto.kind ?? 'INVOICE',
+          status: 'DRAFT',
+          currency: tenant.baseCurrency,
+          dueDate: dto.dueDate ? new Date(dto.dueDate) : null,
+          notes: dto.notes,
+          sourceQuoteId: dto.sourceQuoteId,
+          subtotalMinor: computed.subtotalMinor,
+          vatMinor: computed.vatMinor,
+          totalMinor: computed.totalMinor,
+          createdBy: user.userId,
+          lines: { create: computed.lines.map((l) => ({ ...l, tenantId: user.tenantId })) },
+        },
+        include: { lines: true },
+      });
+
+      await this.audit.record(tx, {
+        tenantId: user.tenantId,
+        actorId: user.userId,
+        action: 'INVOICE_DRAFTED',
+        entity: 'invoice',
+        entityId: invoice.id,
+      });
+
+      return invoice;
+    });
+  }
+
+  async update(user: AuthenticatedUser, id: string, dto: UpdateInvoiceDto) {
+    return this.prisma.forTenant(user.tenantId, async (tx) => {
+      const existing = await tx.invoice.findUnique({ where: { id } });
+      if (!existing) throw new NotFoundException('Invoice not found');
+      if (existing.status !== 'DRAFT') {
+        throw new BadRequestException('Only DRAFT invoices can be edited');
+      }
+
+      const tenant = await tx.tenant.findUniqueOrThrow({ where: { id: user.tenantId } });
+
+      let lineData: Awaited<ReturnType<InvoicesService['computeLines']>> | undefined;
+      if (dto.lines) {
+        lineData = await this.computeLines(tx, user.tenantId, tenant.pricingMode, dto.lines);
+        await tx.invoiceLine.deleteMany({ where: { invoiceId: id } });
+      }
+
+      const updated = await tx.invoice.update({
+        where: { id },
+        data: {
+          contactId: dto.contactId,
+          dueDate: dto.dueDate ? new Date(dto.dueDate) : undefined,
+          notes: dto.notes,
+          subtotalMinor: lineData?.subtotalMinor,
+          vatMinor: lineData?.vatMinor,
+          totalMinor: lineData?.totalMinor,
+          lines: lineData ? { create: lineData.lines.map((l) => ({ ...l, tenantId: user.tenantId })) } : undefined,
+        },
+        include: { lines: true },
+      });
+
+      await this.audit.record(tx, {
+        tenantId: user.tenantId,
+        actorId: user.userId,
+        action: 'INVOICE_UPDATED',
+        entity: 'invoice',
+        entityId: id,
+      });
+
+      return updated;
+    });
+  }
+
+  /**
+   * Validates everything we can check locally, claims the invoice
+   * (DRAFT -> CERTIFYING), and returns immediately — the actual VSDC round
+   * trip happens off the request/response cycle in `certifyInvoice`.
+   * Production should replace the `setImmediate` dispatch with a durable
+   * queue (BullMQ, etc.); the retry/idempotency logic itself doesn't change.
+   */
+  async issue(user: AuthenticatedUser, id: string) {
+    await this.prisma.forTenant(user.tenantId, async (tx) => {
+      const invoice = await tx.invoice.findUnique({ where: { id }, include: { lines: { include: { item: true } } } });
+      if (!invoice) throw new NotFoundException('Invoice not found');
+      if (invoice.status === 'CERTIFY_FAILED') {
+        throw new BadRequestException('Invoice certification failed previously — reset to DRAFT before reissuing');
+      }
+      if (invoice.status !== 'DRAFT') {
+        throw new BadRequestException(`Only DRAFT invoices can be issued (current status: ${invoice.status})`);
+      }
+
+      const tenant = await tx.tenant.findUniqueOrThrow({ where: { id: user.tenantId } });
+
+      for (const line of invoice.lines) {
+        if (!line.item.incomeAccountId) {
+          throw new BadRequestException(`Item ${line.item.sku} has no income account configured`);
+        }
+        if (tenant.ebmMode === 'VSDC' && !line.item.ebmRegisteredAt) {
+          throw new BadRequestException(`Item ${line.item.sku} is not registered with EBM`);
+        }
+      }
+
+      if (tenant.ebmMode === 'VSDC') {
+        const healthResult = await this.ebm.health(tx, user.tenantId, tenant.ebmMode);
+        if (healthResult.outcome === 'OK' && healthResult.data?.locked) {
+          throw new BadRequestException('EBM device is locked (offline for more than 24h) — cannot issue new invoices');
+        }
+      }
+
+      const claimed = await tx.invoice.updateMany({ where: { id, status: 'DRAFT' }, data: { status: 'CERTIFYING' } });
+      if (claimed.count === 0) {
+        throw new BadRequestException('Invoice was already claimed for certification');
+      }
+
+      await this.audit.record(tx, {
+        tenantId: user.tenantId,
+        actorId: user.userId,
+        action: 'INVOICE_CERTIFYING',
+        entity: 'invoice',
+        entityId: id,
+      });
+    });
+
+    setImmediate(() => {
+      this.certifyInvoice(user.tenantId, id).catch((err) => {
+        this.logger.error(`certifyInvoice(${id}) crashed: ${(err as Error).message}`);
+      });
+    });
+
+    return this.prisma.forTenant(user.tenantId, (tx) => tx.invoice.findUniqueOrThrow({ where: { id } }));
+  }
+
+  async resetToDraft(user: AuthenticatedUser, id: string) {
+    return this.prisma.forTenant(user.tenantId, async (tx) => {
+      const invoice = await tx.invoice.findUnique({ where: { id } });
+      if (!invoice) throw new NotFoundException('Invoice not found');
+      if (invoice.status !== 'CERTIFY_FAILED') {
+        throw new BadRequestException(`Only CERTIFY_FAILED invoices can be reset to DRAFT (current status: ${invoice.status})`);
+      }
+      const updated = await tx.invoice.update({ where: { id }, data: { status: 'DRAFT', certifyFailReason: null } });
+      await this.audit.record(tx, {
+        tenantId: user.tenantId,
+        actorId: user.userId,
+        action: 'INVOICE_RESET_TO_DRAFT',
+        entity: 'invoice',
+        entityId: id,
+      });
+      return updated;
+    });
+  }
+
+  /** Idempotent and safe to call concurrently/repeatedly: checks for an existing receipt before ever calling VSDC again. */
+  async certifyInvoice(tenantId: string, invoiceId: string) {
+    for (let attempt = 1; attempt <= MAX_CERTIFY_ATTEMPTS; attempt++) {
+      const existingReceipt = await this.prisma.forTenant(tenantId, (tx) =>
+        tx.ebmReceipt.findFirst({ where: { invoiceId, receiptType: 'NORMAL' } }),
+      );
+      if (existingReceipt) {
+        await this.finalizeIssued(tenantId, invoiceId, {
+          rraReceiptNo: existingReceipt.rraReceiptNo!,
+          sdcId: existingReceipt.sdcId!,
+          internalData: existingReceipt.internalData!,
+          receiptSignature: existingReceipt.receiptSignature!,
+          qrPayload: existingReceipt.qrPayload ?? '',
+          vsdcDatetime: (existingReceipt.vsdcDatetime ?? new Date()).toISOString(),
+        });
+        return;
+      }
+
+      const invoice = await this.prisma.forTenant(tenantId, (tx) =>
+        tx.invoice.findUnique({ where: { id: invoiceId }, include: { lines: { include: { item: true } }, contact: true } }),
+      );
+      if (!invoice || invoice.status !== 'CERTIFYING') return;
+
+      const tenant = await this.prisma.forTenant(tenantId, (tx) => tx.tenant.findUniqueOrThrow({ where: { id: tenantId } }));
+
+      const result = await this.prisma.forTenant(tenantId, (tx) =>
+        this.ebm.certifySale(
+          tx,
+          tenantId,
+          tenant.ebmMode,
+          {
+            invoiceUuid: invoice.id,
+            buyerTin: invoice.contact.tin ?? undefined,
+            buyerName: invoice.contact.name,
+            currency: invoice.currency,
+            subtotalMinor: invoice.subtotalMinor.toString(),
+            vatMinor: invoice.vatMinor.toString(),
+            totalMinor: invoice.totalMinor.toString(),
+            lines: invoice.lines.map((l) => ({
+              rraItemCode: l.item.rraItemCode ?? l.item.sku,
+              description: l.description ?? l.item.name,
+              qty: l.qty.toString(),
+              unitPriceMinor: l.unitPriceMinor.toString(),
+              taxCode: l.taxCode,
+              lineNetMinor: l.lineNetMinor.toString(),
+              lineVatMinor: l.lineVatMinor.toString(),
+              lineTotalMinor: l.lineTotalMinor.toString(),
+            })),
+          },
+          attempt,
+        ),
+      );
+
+      if (result.outcome === 'OK' && result.data) {
+        await this.finalizeIssued(tenantId, invoiceId, result.data);
+        return;
+      }
+      if (result.outcome === 'FATAL') {
+        await this.markCertifyFailed(tenantId, invoiceId, result.errorMessage ?? 'VSDC rejected the sale');
+        return;
+      }
+      if (attempt < MAX_CERTIFY_ATTEMPTS) {
+        await sleep(backoffMs(attempt));
+      }
+    }
+    await this.markCertifyFailed(tenantId, invoiceId, `VSDC unreachable after ${MAX_CERTIFY_ATTEMPTS} attempts`);
+  }
+
+  /** Enforces spec §9: a NORMAL receipt cannot be rendered while status != ISSUED (or a later payment/credit state that implies it once was). */
+  async getReceiptPdf(tenantId: string, invoiceId: string): Promise<Buffer> {
+    const invoice = await this.prisma.forTenant(tenantId, (tx) =>
+      tx.invoice.findUnique({
+        where: { id: invoiceId },
+        include: { lines: true, contact: true, ebmReceipts: { where: { receiptType: 'NORMAL' } } },
+      }),
+    );
+    if (!invoice) throw new NotFoundException('Invoice not found');
+
+    const receipt = invoice.ebmReceipts[0];
+    if (!receipt) {
+      throw new BadRequestException(`Receipt not available while invoice is ${invoice.status} — it is only issued once certification succeeds`);
+    }
+
+    const tenant = await this.prisma.forTenant(tenantId, (tx) => tx.tenant.findUniqueOrThrow({ where: { id: tenantId } }));
+
+    return this.receiptRenderer.render({
+      documentLabel: invoice.kind,
+      documentNo: invoice.invoiceNo?.toString() ?? null,
+      issueDate: invoice.issueDate,
+      contactName: invoice.contact.name,
+      contactTin: invoice.contact.tin,
+      currency: invoice.currency,
+      subtotalMinor: invoice.subtotalMinor,
+      vatMinor: invoice.vatMinor,
+      totalMinor: invoice.totalMinor,
+      lines: invoice.lines.map((l) => ({
+        description: l.description ?? '',
+        qty: l.qty.toString(),
+        unitPriceMinor: l.unitPriceMinor,
+        taxCode: l.taxCode,
+        lineTotalMinor: l.lineTotalMinor,
+      })),
+      receipt: {
+        receiptType: receipt.receiptType,
+        rraReceiptNo: receipt.rraReceiptNo,
+        sdcId: receipt.sdcId,
+        internalData: receipt.internalData,
+        receiptSignature: receipt.receiptSignature,
+        qrPayload: receipt.qrPayload,
+      },
+      isEbmDocument: tenant.ebmMode === 'VSDC',
+    });
+  }
+
+  private async finalizeIssued(tenantId: string, invoiceId: string, receiptData: CertifyReceipt) {
+    await this.prisma.forTenant(tenantId, async (tx) => {
+      const rows = await tx.$queryRaw<{ status: string }[]>`SELECT status FROM invoices WHERE id = ${invoiceId} FOR UPDATE`;
+      if (rows[0]?.status !== 'CERTIFYING') return; // lost the race or already resolved by another attempt
+
+      const invoiceNo = await this.docNumbering.next(tx, tenantId, 'INVOICE');
+      const issueDate = new Date();
+
+      const invoice = await tx.invoice.update({
+        where: { id: invoiceId },
+        data: { status: 'ISSUED', invoiceNo, issueDate },
+        include: { lines: { include: { item: true } } },
+      });
+
+      await tx.ebmReceipt.create({
+        data: {
+          tenantId,
+          invoiceId,
+          receiptType: 'NORMAL',
+          rraReceiptNo: receiptData.rraReceiptNo,
+          sdcId: receiptData.sdcId,
+          internalData: receiptData.internalData,
+          receiptSignature: receiptData.receiptSignature,
+          qrPayload: receiptData.qrPayload,
+          vsdcDatetime: new Date(receiptData.vsdcDatetime),
+          rawResponse: receiptData as any, // eslint-disable-line @typescript-eslint/no-explicit-any
+        },
+      });
+
+      const arAccountId = await this.controlAccounts.resolve(tx, tenantId, 'AR');
+      const vatOutputAccountId = await this.controlAccounts.resolve(tx, tenantId, 'VAT_OUTPUT');
+
+      const revenueByAccount = new Map<string, bigint>();
+      for (const line of invoice.lines) {
+        const accountId = line.item.incomeAccountId!;
+        revenueByAccount.set(accountId, (revenueByAccount.get(accountId) ?? 0n) + line.lineNetMinor);
+      }
+
+      const glLines: { accountId: string; direction: 'DEBIT' | 'CREDIT'; amountMinor: bigint; currency: string }[] = [
+        { accountId: arAccountId, direction: 'DEBIT', amountMinor: invoice.totalMinor, currency: invoice.currency },
+      ];
+      for (const [accountId, amountMinor] of revenueByAccount) {
+        glLines.push({ accountId, direction: 'CREDIT', amountMinor, currency: invoice.currency });
+      }
+      if (invoice.vatMinor > 0n) {
+        glLines.push({ accountId: vatOutputAccountId, direction: 'CREDIT', amountMinor: invoice.vatMinor, currency: invoice.currency });
+      }
+
+      await this.journal.postSystemEntry(tx, {
+        tenantId,
+        entryDate: issueDate,
+        memo: `Invoice ${invoiceNo} issued`,
+        sourceDocumentRef: { type: 'INVOICE', id: invoiceId, number: invoiceNo.toString() },
+        lines: glLines,
+      });
+
+      await this.audit.record(tx, {
+        tenantId,
+        action: 'INVOICE_ISSUED',
+        entity: 'invoice',
+        entityId: invoiceId,
+        payload: { invoiceNo: invoiceNo.toString(), rraReceiptNo: receiptData.rraReceiptNo },
+      });
+    });
+  }
+
+  private async markCertifyFailed(tenantId: string, invoiceId: string, reason: string) {
+    await this.prisma.forTenant(tenantId, async (tx) => {
+      const updated = await tx.invoice.updateMany({
+        where: { id: invoiceId, status: 'CERTIFYING' },
+        data: { status: 'CERTIFY_FAILED', certifyFailReason: reason },
+      });
+      if (updated.count === 0) return;
+      await this.audit.record(tx, {
+        tenantId,
+        action: 'INVOICE_CERTIFY_FAILED',
+        entity: 'invoice',
+        entityId: invoiceId,
+        payload: { reason },
+      });
+    });
+  }
+
+  private async computeLines(
+    tx: TenantTx,
+    tenantId: string,
+    pricingMode: 'TAX_EXCLUSIVE' | 'TAX_INCLUSIVE',
+    lines: CreateInvoiceLineDto[],
+  ) {
+    let subtotalMinor = 0n;
+    let vatMinor = 0n;
+    let totalMinor = 0n;
+    const today = new Date();
+    const results = [];
+
+    for (const line of lines) {
+      const item = await tx.item.findUnique({ where: { id: line.itemId } });
+      if (!item) throw new NotFoundException(`Item ${line.itemId} not found`);
+      if (item.archivedAt) throw new BadRequestException(`Item ${item.sku} is archived`);
+
+      const unitPriceMinor = line.unitPriceMinor !== undefined ? BigInt(line.unitPriceMinor) : item.defaultPriceMinor;
+      const rateBp = await this.taxRates.getRateBp(tx, tenantId, item.taxCode, today);
+      const amounts = computeLine({ pricingMode, qty: line.qty, unitPriceMinor, rateBp });
+
+      subtotalMinor += amounts.lineNetMinor;
+      vatMinor += amounts.lineVatMinor;
+      totalMinor += amounts.lineTotalMinor;
+
+      results.push({
+        itemId: item.id,
+        description: line.description,
+        qty: line.qty,
+        unitPriceMinor,
+        taxCode: item.taxCode,
+        lineNetMinor: amounts.lineNetMinor,
+        lineVatMinor: amounts.lineVatMinor,
+        lineTotalMinor: amounts.lineTotalMinor,
+      });
+    }
+
+    return { lines: results, subtotalMinor, vatMinor, totalMinor };
+  }
+}

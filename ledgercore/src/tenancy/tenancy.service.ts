@@ -2,12 +2,14 @@ import { Injectable } from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
+import { TaxRatesService } from '../tax/tax-rates.service';
 
 @Injectable()
 export class TenancyService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
+    private readonly taxRates: TaxRatesService,
   ) {}
 
   /**
@@ -26,6 +28,7 @@ export class TenancyService {
 
     const owner = await this.prisma.forTenant(tenant.id, async (tx) => {
       await tx.entryNoSequence.create({ data: { tenantId: tenant.id, lastNo: 0n } });
+      await this.taxRates.seedDefaults(tx, tenant.id, tenant.createdAt);
       const user = await tx.user.create({
         data: {
           tenantId: tenant.id,

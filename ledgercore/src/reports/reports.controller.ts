@@ -61,6 +61,32 @@ export class ReportsController {
     }
     return result;
   }
+
+  @Get('ar-aging')
+  arAging(@CurrentUser() user: AuthenticatedUser, @Query('as_of') asOf?: string) {
+    return this.reports.arAging(user.tenantId, asOf ? new Date(asOf) : new Date());
+  }
+
+  @Get('ap-aging')
+  apAging(@CurrentUser() user: AuthenticatedUser, @Query('as_of') asOf?: string) {
+    return this.reports.apAging(user.tenantId, asOf ? new Date(asOf) : new Date());
+  }
+
+  @Get('vat-return')
+  vatReturn(@CurrentUser() user: AuthenticatedUser, @Query('period') period: string) {
+    const { from, to } = parsePeriod(period);
+    return this.reports.vatReturn(user.tenantId, from, to);
+  }
+}
+
+/** `period` is `YYYY-MM`, matching the RRA VAT declaration's monthly cadence. */
+function parsePeriod(period: string): { from: Date; to: Date } {
+  const [yearStr, monthStr] = period.split('-');
+  const year = Number(yearStr);
+  const month = Number(monthStr);
+  const from = new Date(Date.UTC(year, month - 1, 1));
+  const to = new Date(Date.UTC(year, month, 0));
+  return { from, to };
 }
 
 function sendCsv(res: Response, filename: string, rows: Record<string, unknown>[]) {
