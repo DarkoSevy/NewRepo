@@ -1,0 +1,186 @@
+// LedgerCore Phase 1 — Core Accounting Engine
+// Multi-tenant double-entry general ledger.
+// NOTE: constraints/triggers/RLS enforced via raw SQL migrations, not represented here.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum AccountType {
+  ASSET
+  LIABILITY
+  EQUITY
+  INCOME
+  EXPENSE
+}
+
+enum NormalBalance {
+  DEBIT
+  CREDIT
+}
+
+enum PeriodStatus {
+  OPEN
+  CLOSED
+}
+
+enum EntryStatus {
+  DRAFT
+  POSTED
+  REVERSED
+}
+
+enum EntrySource {
+  MANUAL
+  SYSTEM
+}
+
+enum LineDirection {
+  DEBIT
+  CREDIT
+}
+
+enum UserRole {
+  OWNER
+  ACCOUNTANT
+  VIEWER
+}
+
+model Tenant {
+  id           String   @id @default(uuid())
+  name         String
+  baseCurrency String   @default("RWF") @map("base_currency") @db.Char(3)
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  users            User[]
+  accounts         Account[]
+  periods          AccountingPeriod[]
+  journalEntries   JournalEntry[]
+  journalLines     JournalLine[]
+  auditLogs        AuditLog[]
+  entryNoSequences EntryNoSequence[]
+
+  @@map("tenants")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  tenantId  String   @map("tenant_id")
+  email     String
+  passwordHash String @map("password_hash")
+  role      UserRole @default(ACCOUNTANT)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@unique([tenantId, email])
+  @@map("users")
+}
+
+model Account {
+  id             String       @id @default(uuid())
+  tenantId       String       @map("tenant_id")
+  code           String
+  name           String
+  type           AccountType
+  normalBalance  NormalBalance @map("normal_balance")
+  parentId       String?      @map("parent_id")
+  isPostable     Boolean      @default(true) @map("is_postable")
+  archivedAt     DateTime?    @map("archived_at")
+  createdAt      DateTime     @default(now()) @map("created_at")
+
+  tenant  Tenant    @relation(fields: [tenantId], references: [id])
+  parent  Account?  @relation("AccountHierarchy", fields: [parentId], references: [id])
+  children Account[] @relation("AccountHierarchy")
+  lines   JournalLine[]
+
+  @@unique([tenantId, code])
+  @@map("accounts")
+}
+
+model AccountingPeriod {
+  id        String       @id @default(uuid())
+  tenantId  String       @map("tenant_id")
+  startDate DateTime     @map("start_date") @db.Date
+  endDate   DateTime     @map("end_date") @db.Date
+  status    PeriodStatus @default(OPEN)
+  closedAt  DateTime?    @map("closed_at")
+  closedBy  String?      @map("closed_by")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@unique([tenantId, startDate, endDate])
+  @@map("accounting_periods")
+}
+
+model EntryNoSequence {
+  tenantId String @id @map("tenant_id")
+  lastNo   BigInt @default(0) @map("last_no")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@map("entry_no_sequences")
+}
+
+model JournalEntry {
+  id             String      @id @default(uuid())
+  tenantId       String      @map("tenant_id")
+  entryNo        BigInt?     @map("entry_no")
+  entryDate      DateTime    @map("entry_date") @db.Date
+  memo           String?
+  status         EntryStatus @default(DRAFT)
+  source         EntrySource @default(MANUAL)
+  sourceDocumentRef Json?    @map("source_document_ref")
+  reversalOfId   String?     @map("reversal_of_id")
+  postedAt       DateTime?   @map("posted_at")
+  postedBy       String?     @map("posted_by")
+  createdAt      DateTime    @default(now()) @map("created_at")
+  createdBy      String?     @map("created_by")
+
+  tenant      Tenant        @relation(fields: [tenantId], references: [id])
+  reversalOf  JournalEntry? @relation("Reversal", fields: [reversalOfId], references: [id])
+  reversedBy  JournalEntry[] @relation("Reversal")
+  lines       JournalLine[]
+
+  @@unique([tenantId, entryNo])
+  @@map("journal_entries")
+}
+
+model JournalLine {
+  id               String        @id @default(uuid())
+  tenantId         String        @map("tenant_id")
+  entryId          String        @map("entry_id")
+  accountId        String        @map("account_id")
+  direction        LineDirection
+  amountMinor      BigInt        @map("amount_minor")
+  currency         String        @db.Char(3)
+  fxRate           Decimal?      @map("fx_rate") @db.Decimal(18, 8)
+  amountBaseMinor  BigInt?       @map("amount_base_minor")
+  memo             String?
+
+  tenant  Tenant       @relation(fields: [tenantId], references: [id])
+  entry   JournalEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  account Account      @relation(fields: [accountId], references: [id])
+
+  @@map("journal_lines")
+}
+
+model AuditLog {
+  id       String   @id @default(uuid())
+  tenantId String   @map("tenant_id")
+  actorId  String?  @map("actor_id")
+  action   String
+  entity   String
+  entityId String?  @map("entity_id")
+  payload  Json?
+  at       DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@map("audit_log")
+}

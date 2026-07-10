@@ -1,0 +1,14 @@
+version: "3.8"
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: ledgercore
+      POSTGRES_PASSWORD: ledgercore
+      POSTGRES_DB: ledgercore
+    ports:
+      - "5432:5432"
+    volumes:
+      - ledgercore_pgdata:/var/lib/postgresql/data
+volumes:
+  ledgercore_pgdata:
