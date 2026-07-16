@@ -104,6 +104,14 @@ export interface HealthStatus {
   locked: boolean;
 }
 
+export interface StockMovementReport {
+  rraItemCode: string;
+  movementType: 'OPENING' | 'PURCHASE' | 'SALE' | 'CREDIT_NOTE_RETURN' | 'ADJUSTMENT';
+  qtyDelta: string;
+  unitCostMinor: string;
+  movementDate: string;
+}
+
 export interface EbmAdapter {
   readonly name: string;
 
@@ -120,4 +128,10 @@ export interface EbmAdapter {
   syncPurchases(params: { tenantId: string }): Promise<EbmCallResult<PurchaseRecord[]>>;
 
   health(params: { tenantId: string }): Promise<EbmCallResult<HealthStatus>>;
+
+  /** Registers an item as stock-tracked with the VSDC — required before its movements can be reported (spec §6). */
+  registerStockItem(params: { tenantId: string; rraItemCode: string }): Promise<EbmCallResult<{ registered: true }>>;
+
+  /** Reports a single stock in/out movement. Called once per stock_movement row; never batches, so retry/idempotency stays at the movement grain. */
+  reportStockMovement(params: { tenantId: string; movement: StockMovementReport }): Promise<EbmCallResult<{ acknowledged: true }>>;
 }

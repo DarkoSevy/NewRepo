@@ -12,6 +12,7 @@ import { computeLine } from '../tax/vat-calc';
 import { CreateBillDto } from './dto/create-bill.dto';
 import { CreateInvoiceLineDto } from '../invoicing/dto/create-invoice-line.dto';
 import { PurchaseRecord } from '../ebm/ebm-adapter.interface';
+import { StockService } from '../inventory/stock.service';
 
 const UNCATEGORIZED_SKU = 'UNCATEGORIZED-PURCHASE';
 
@@ -25,6 +26,7 @@ export class BillsService {
     private readonly ebm: EbmService,
     private readonly docNumbering: DocumentNumberingService,
     private readonly controlAccounts: ControlAccountsService,
+    private readonly stock: StockService,
   ) {}
 
   list(tenantId: string, filters: { status?: BillStatus }) {
@@ -102,10 +104,26 @@ export class BillsService {
       const apAccountId = await this.controlAccounts.resolve(tx, user.tenantId, 'AP');
       const vatInputAccountId = await this.controlAccounts.resolve(tx, user.tenantId, 'VAT_INPUT');
 
+      // Tracked (inventory) items post to Inventory instead of an expense
+      // account, and update WAC — everything else is untouched from Phase 2.
+      // Each item's WAC-rounding residue settles against its OWN inventory
+      // account, never against AP (AP reflects the bill's exact total,
+      // which is real money owed and has nothing to do with WAC rounding).
       const expenseByAccount = new Map<string, bigint>();
+      const residueByInventoryAccount = new Map<string, bigint>();
       for (const line of approved.lines) {
-        const accountId = line.item.expenseAccountId!;
-        expenseByAccount.set(accountId, (expenseByAccount.get(accountId) ?? 0n) + line.lineNetMinor);
+        if (line.item.tracked) {
+          if (!line.item.inventoryAccountId) throw new BadRequestException(`Item ${line.item.sku} has no inventory account configured`);
+          const result = await this.stock.recordPurchase(tx, user.tenantId, line.itemId, line.qty, line.unitPriceMinor, { type: 'BILL', id });
+          expenseByAccount.set(line.item.inventoryAccountId, (expenseByAccount.get(line.item.inventoryAccountId) ?? 0n) + line.lineNetMinor);
+          residueByInventoryAccount.set(
+            line.item.inventoryAccountId,
+            (residueByInventoryAccount.get(line.item.inventoryAccountId) ?? 0n) + result.residueMinor,
+          );
+        } else {
+          const accountId = line.item.expenseAccountId!;
+          expenseByAccount.set(accountId, (expenseByAccount.get(accountId) ?? 0n) + line.lineNetMinor);
+        }
       }
 
       const glLines: { accountId: string; direction: 'DEBIT' | 'CREDIT'; amountMinor: bigint; currency: string }[] = [];
@@ -116,6 +134,22 @@ export class BillsService {
         glLines.push({ accountId: vatInputAccountId, direction: 'DEBIT', amountMinor: approved.vatMinor, currency: approved.currency });
       }
       glLines.push({ accountId: apAccountId, direction: 'CREDIT', amountMinor: approved.totalMinor, currency: approved.currency });
+
+      const totalResidue = [...residueByInventoryAccount.values()].reduce((sum, v) => sum + v, 0n);
+      if (totalResidue !== 0n) {
+        const adjustmentAccountId = await this.controlAccounts.resolve(tx, user.tenantId, 'INVENTORY_ADJUSTMENT');
+        for (const [inventoryAccountId, residue] of residueByInventoryAccount) {
+          if (residue === 0n) continue;
+          const amount = residue > 0n ? residue : -residue;
+          if (residue > 0n) {
+            glLines.push({ accountId: inventoryAccountId, direction: 'DEBIT', amountMinor: amount, currency: approved.currency });
+            glLines.push({ accountId: adjustmentAccountId, direction: 'CREDIT', amountMinor: amount, currency: approved.currency });
+          } else {
+            glLines.push({ accountId: adjustmentAccountId, direction: 'DEBIT', amountMinor: amount, currency: approved.currency });
+            glLines.push({ accountId: inventoryAccountId, direction: 'CREDIT', amountMinor: amount, currency: approved.currency });
+          }
+        }
+      }
 
       await this.journal.postSystemEntry(tx, {
         tenantId: user.tenantId,

@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { bookValueMinor } from '../inventory/wac';
 
 // Postgres SUM(bigint) returns NUMERIC, which the driver hands back as a
 // Decimal-like object/string, not a native bigint — `pg-bigint + Decimal`
@@ -337,5 +338,47 @@ export class ReportsService {
         },
       };
     });
+  }
+
+  async inventoryValuation(tenantId: string) {
+    const items = await this.prisma.forTenant(tenantId, (tx) => tx.item.findMany({ where: { tracked: true }, orderBy: { sku: 'asc' } }));
+
+    let totalValueMinor = 0n;
+    const rows = items.map((item) => {
+      const valueMinor = bookValueMinor({ qtyOnHand: item.qtyOnHand.toString(), wacMinorX1000: item.wacMinor });
+      totalValueMinor += valueMinor;
+      return {
+        itemId: item.id,
+        sku: item.sku,
+        name: item.name,
+        qtyOnHand: item.qtyOnHand.toString(),
+        wacMinorPerUnit: (item.wacMinor / 1000n).toString(),
+        valueMinor: valueMinor.toString(),
+      };
+    });
+
+    return { asOf: new Date().toISOString(), items: rows, totalValueMinor: totalValueMinor.toString() };
+  }
+
+  async stockMovements(tenantId: string, itemId?: string) {
+    const movements = await this.prisma.forTenant(tenantId, (tx) =>
+      tx.stockMovement.findMany({
+        where: { itemId },
+        include: { item: true },
+        orderBy: { createdAt: 'asc' },
+      }),
+    );
+
+    return movements.map((m) => ({
+      id: m.id,
+      itemId: m.itemId,
+      sku: m.item.sku,
+      movementType: m.movementType,
+      qtyDelta: m.qtyDelta.toString(),
+      unitCostMinor: m.unitCostMinor.toString(),
+      sourceDocumentRef: m.sourceDocumentRef,
+      ebmReportedAt: m.ebmReportedAt,
+      createdAt: m.createdAt,
+    }));
   }
 }

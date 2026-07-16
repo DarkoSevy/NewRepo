@@ -34,6 +34,7 @@ export const RW_SME_TEMPLATE: SeedAccount[] = [
   a('1300', 'Prepayments', 'ASSET'),
   a('1400', 'Fixed Assets', 'ASSET'),
   a('1410', 'Accumulated Depreciation', 'ASSET', 'CREDIT'), // contra-asset
+  a('1450', 'Inventory', 'ASSET'),
 
   // 2xxx Liabilities
   a('2000', 'Accounts Payable', 'LIABILITY'),
@@ -68,4 +69,5 @@ export const RW_SME_TEMPLATE: SeedAccount[] = [
   a('5800', 'Professional Fees', 'EXPENSE'),
   a('5900', 'RRA Penalties & Interest', 'EXPENSE'),
   a('5950', 'FX Loss', 'EXPENSE'),
+  a('5750', 'Inventory Adjustment', 'EXPENSE'),
 ];

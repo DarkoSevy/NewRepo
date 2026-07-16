@@ -55,6 +55,12 @@ export class ItemsService {
       const existing = await tx.item.findUnique({ where: { id } });
       if (!existing) throw new NotFoundException('Item not found');
 
+      if (dto.tracked && !existing.tracked) {
+        if (existing.type !== 'GOODS') throw new BadRequestException('Only GOODS items can be tracked for inventory');
+        const hasMovements = await tx.stockMovement.findFirst({ where: { itemId: id } });
+        if (hasMovements) throw new BadRequestException('Item already has stock movements — cannot toggle tracked');
+      }
+
       const updated = await tx.item.update({
         where: { id },
         data: {
@@ -63,6 +69,8 @@ export class ItemsService {
           defaultPriceMinor: dto.defaultPriceMinor !== undefined ? BigInt(dto.defaultPriceMinor) : undefined,
           incomeAccountId: dto.incomeAccountId,
           expenseAccountId: dto.expenseAccountId,
+          tracked: dto.tracked,
+          inventoryAccountId: dto.inventoryAccountId,
         },
       });
       await this.audit.record(tx, {
@@ -122,6 +130,17 @@ export class ItemsService {
           ebmRegisteredAt: new Date(),
         },
       });
+
+      if (updated.tracked) {
+        // Stock master registration is required before movements can be
+        // reported (spec §6) — unblocking goods-tracking is the point of
+        // Phase 3, so a tracked item always gets this on top of the normal
+        // item registration above.
+        const stockResult = await this.ebm.registerStockItem(tx, user.tenantId, tenant.ebmMode, result.data.rraItemCode);
+        if (stockResult.outcome !== 'OK') {
+          throw new BadRequestException(stockResult.errorMessage ?? 'EBM stock master registration failed');
+        }
+      }
 
       await this.audit.record(tx, {
         tenantId: user.tenantId,

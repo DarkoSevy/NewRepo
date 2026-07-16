@@ -12,6 +12,7 @@ import {
   ItemRegistrationResult,
   PurchaseRecord,
   RraCodeEntry,
+  StockMovementReport,
 } from '../ebm-adapter.interface';
 
 /**
@@ -50,6 +51,14 @@ export class NullDriver implements EbmAdapter {
 
   async health(params: { tenantId: string }): Promise<EbmCallResult<HealthStatus>> {
     return ok(params, { lastSuccessfulSyncAt: new Date().toISOString(), hoursSinceLastSync: 0, hoursRemaining: null, locked: false });
+  }
+
+  async registerStockItem(params: { tenantId: string; rraItemCode: string }): Promise<EbmCallResult<{ registered: true }>> {
+    return ok(params, { registered: true });
+  }
+
+  async reportStockMovement(params: { tenantId: string; movement: StockMovementReport }): Promise<EbmCallResult<{ acknowledged: true }>> {
+    return ok(params, { acknowledged: true });
   }
 }
 

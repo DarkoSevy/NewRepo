@@ -147,13 +147,75 @@ enum PaymentMethod {
   CARD
 }
 
+// ── Phase 3: Bank & MoMo Reconciliation + Inventory ─────────────────────────
+
+enum FinancialAccountKind {
+  BANK
+  MOMO
+  CASH
+}
+
+enum StatementImportStatus {
+  PARSED
+  PARTIALLY_MATCHED
+  RECONCILED
+}
+
+enum StatementLineStatus {
+  UNMATCHED
+  MATCHED
+  EXCLUDED
+}
+
+enum MatchKind {
+  MANUAL
+  RULE
+  AUTO_T1
+  AUTO_T2
+  MOMO_EVENT
+}
+
+enum MatchStatus {
+  PROPOSED
+  CONFIRMED
+}
+
+enum MatchRuleAction {
+  MATCH_CONTACT
+  CREATE_TRANSACTION
+}
+
+enum MomoProvider {
+  MTN
+  AIRTEL
+}
+
+enum ReconciliationSessionStatus {
+  OPEN
+  COMPLETED
+}
+
+enum StockMovementType {
+  OPENING
+  PURCHASE
+  SALE
+  CREDIT_NOTE_RETURN
+  ADJUSTMENT
+}
+
+enum NegativeStockPolicy {
+  BLOCK
+  WARN
+}
+
 model Tenant {
-  id           String      @id @default(uuid())
-  name         String
-  baseCurrency String      @default("RWF") @map("base_currency") @db.Char(3)
-  pricingMode  PricingMode @default(TAX_EXCLUSIVE) @map("pricing_mode")
-  ebmMode      EbmMode     @default(DISABLED) @map("ebm_mode")
-  createdAt    DateTime    @default(now()) @map("created_at")
+  id                  String              @id @default(uuid())
+  name                String
+  baseCurrency        String              @default("RWF") @map("base_currency") @db.Char(3)
+  pricingMode         PricingMode         @default(TAX_EXCLUSIVE) @map("pricing_mode")
+  ebmMode             EbmMode             @default(DISABLED) @map("ebm_mode")
+  negativeStockPolicy NegativeStockPolicy @default(BLOCK) @map("negative_stock_policy")
+  createdAt           DateTime            @default(now()) @map("created_at")
 
   users            User[]
   accounts         Account[]
@@ -180,6 +242,16 @@ model Tenant {
   payments            Payment[]
   paymentAllocations  PaymentAllocation[]
   documentNoSequences DocumentNoSequence[]
+
+  financialAccounts      FinancialAccount[]
+  statementImports       StatementImport[]
+  statementLines         StatementLine[]
+  matches                Match[]
+  matchLegs              MatchLeg[]
+  matchRules             MatchRule[]
+  momoEvents             MomoEvent[]
+  reconciliationSessions ReconciliationSession[]
+  stockMovements         StockMovement[]
 
   @@map("tenants")
 }
@@ -220,6 +292,9 @@ model Account {
   expensesAsExpense  Expense[] @relation("ExpenseExpenseAccount")
   expensesAsPaidFrom Expense[] @relation("ExpensePaidFromAccount")
   paymentsAsDeposit  Payment[] @relation("PaymentDepositAccount")
+
+  financialAccount FinancialAccount?
+  itemsAsInventory Item[]            @relation("ItemInventoryAccount")
 
   @@unique([tenantId, code])
   @@map("accounts")
@@ -285,9 +360,10 @@ model JournalLine {
   amountBaseMinor BigInt?       @map("amount_base_minor")
   memo            String?
 
-  tenant  Tenant       @relation(fields: [tenantId], references: [id])
-  entry   JournalEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
-  account Account      @relation(fields: [accountId], references: [id])
+  tenant    Tenant       @relation(fields: [tenantId], references: [id])
+  entry     JournalEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  account   Account      @relation(fields: [accountId], references: [id])
+  matchLegs MatchLeg[]
 
   @@map("journal_lines")
 }
@@ -361,13 +437,23 @@ model Item {
   archivedAt        DateTime? @map("archived_at")
   createdAt         DateTime  @default(now()) @map("created_at")
 
-  tenant         Tenant   @relation(fields: [tenantId], references: [id])
-  incomeAccount  Account? @relation("ItemIncomeAccount", fields: [incomeAccountId], references: [id])
-  expenseAccount Account? @relation("ItemExpenseAccount", fields: [expenseAccountId], references: [id])
+  // Inventory (Phase 3 §6): populated only when type = GOODS and tracked =
+  // true. wacMinor is per-unit, scaled ×1000 for sub-franc precision;
+  // divide by 1000 and round before any GL posting.
+  tracked            Boolean @default(false)
+  qtyOnHand          Decimal @default(0) @map("qty_on_hand") @db.Decimal(14, 3)
+  wacMinor           BigInt  @default(0) @map("wac_minor")
+  inventoryAccountId String? @map("inventory_account_id")
+
+  tenant           Tenant   @relation(fields: [tenantId], references: [id])
+  incomeAccount    Account? @relation("ItemIncomeAccount", fields: [incomeAccountId], references: [id])
+  expenseAccount   Account? @relation("ItemExpenseAccount", fields: [expenseAccountId], references: [id])
+  inventoryAccount Account? @relation("ItemInventoryAccount", fields: [inventoryAccountId], references: [id])
 
   invoiceLines    InvoiceLine[]
   creditNoteLines CreditNoteLine[]
   billLines       BillLine[]
+  stockMovements  StockMovement[]
 
   @@unique([tenantId, sku])
   @@map("items")
@@ -673,4 +759,186 @@ model PaymentAllocation {
   bill    Bill?    @relation(fields: [billId], references: [id])
 
   @@map("payment_allocations")
+}
+
+// ── Phase 3 models ───────────────────────────────────────────────────────────
+
+model FinancialAccount {
+  id                  String               @id @default(uuid())
+  tenantId            String               @map("tenant_id")
+  name                String
+  kind                FinancialAccountKind
+  glAccountId         String               @unique @map("gl_account_id")
+  currency            String               @db.Char(3)
+  bankCode            String?              @map("bank_code")
+  accountNumberMasked String?              @map("account_number_masked")
+  parserTemplate      String?              @map("parser_template")
+  archivedAt          DateTime?            @map("archived_at")
+  createdAt           DateTime             @default(now()) @map("created_at")
+
+  tenant    Tenant  @relation(fields: [tenantId], references: [id])
+  glAccount Account @relation(fields: [glAccountId], references: [id])
+
+  statementImports       StatementImport[]
+  statementLines         StatementLine[]
+  matches                Match[]
+  matchRules             MatchRule[]
+  reconciliationSessions ReconciliationSession[]
+
+  @@map("financial_accounts")
+}
+
+model StatementImport {
+  id                  String                @id @default(uuid())
+  tenantId            String                @map("tenant_id")
+  financialAccountId  String                @map("financial_account_id")
+  filename            String
+  fileHash            String                @map("file_hash")
+  periodStart         DateTime              @map("period_start") @db.Date
+  periodEnd           DateTime              @map("period_end") @db.Date
+  openingBalanceMinor BigInt                @map("opening_balance_minor")
+  closingBalanceMinor BigInt                @map("closing_balance_minor")
+  lineCount           Int                   @map("line_count")
+  status              StatementImportStatus @default(PARSED)
+  importedBy          String?               @map("imported_by")
+  createdAt           DateTime              @default(now()) @map("created_at")
+
+  tenant           Tenant           @relation(fields: [tenantId], references: [id])
+  financialAccount FinancialAccount @relation(fields: [financialAccountId], references: [id])
+  lines            StatementLine[]
+
+  @@unique([financialAccountId, fileHash])
+  @@map("statement_imports")
+}
+
+model StatementLine {
+  id                  String              @id @default(uuid())
+  tenantId            String              @map("tenant_id")
+  importId            String              @map("import_id")
+  financialAccountId  String              @map("financial_account_id")
+  lineDate            DateTime            @map("line_date") @db.Date
+  description         String
+  externalRef         String?             @map("external_ref")
+  amountMinor         BigInt              @map("amount_minor")
+  direction           PaymentDirection
+  runningBalanceMinor BigInt?             @map("running_balance_minor")
+  lineHash            String              @map("line_hash")
+  status              StatementLineStatus @default(UNMATCHED)
+  excludeReason       String?             @map("exclude_reason")
+  lockedAt            DateTime?           @map("locked_at")
+  createdAt           DateTime            @default(now()) @map("created_at")
+
+  tenant           Tenant           @relation(fields: [tenantId], references: [id])
+  import           StatementImport  @relation(fields: [importId], references: [id])
+  financialAccount FinancialAccount @relation(fields: [financialAccountId], references: [id])
+  matchLegs        MatchLeg[]
+
+  @@unique([financialAccountId, lineHash])
+  @@map("statement_lines")
+}
+
+model Match {
+  id                 String      @id @default(uuid())
+  tenantId           String      @map("tenant_id")
+  financialAccountId String      @map("financial_account_id")
+  createdBy          String?     @map("created_by")
+  kind               MatchKind
+  status             MatchStatus @default(PROPOSED)
+  createdAt          DateTime    @default(now()) @map("created_at")
+  confirmedAt        DateTime?   @map("confirmed_at")
+  confirmedBy        String?     @map("confirmed_by")
+  lockedAt           DateTime?   @map("locked_at")
+
+  tenant           Tenant           @relation(fields: [tenantId], references: [id])
+  financialAccount FinancialAccount @relation(fields: [financialAccountId], references: [id])
+  legs             MatchLeg[]
+
+  @@map("matches")
+}
+
+model MatchLeg {
+  id              String  @id @default(uuid())
+  tenantId        String  @map("tenant_id")
+  matchId         String  @map("match_id")
+  statementLineId String? @map("statement_line_id")
+  journalLineId   String? @map("journal_line_id")
+
+  tenant        Tenant         @relation(fields: [tenantId], references: [id])
+  match         Match          @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  statementLine StatementLine? @relation(fields: [statementLineId], references: [id])
+  journalLine   JournalLine?   @relation(fields: [journalLineId], references: [id])
+
+  @@map("match_legs")
+}
+
+model MatchRule {
+  id                 String          @id @default(uuid())
+  tenantId           String          @map("tenant_id")
+  financialAccountId String?         @map("financial_account_id")
+  priority           Int             @default(100)
+  predicate          Json
+  action             MatchRuleAction
+  createSpec         Json?           @map("create_spec")
+  enabled            Boolean         @default(true)
+  createdAt          DateTime        @default(now()) @map("created_at")
+
+  tenant           Tenant            @relation(fields: [tenantId], references: [id])
+  financialAccount FinancialAccount? @relation(fields: [financialAccountId], references: [id])
+
+  @@map("match_rules")
+}
+
+model MomoEvent {
+  id            String       @id @default(uuid())
+  tenantId      String       @map("tenant_id")
+  provider      MomoProvider
+  externalId    String?      @map("external_id")
+  providerTxnId String       @map("provider_txn_id")
+  status        String
+  amountMinor   BigInt       @map("amount_minor")
+  msisdnMasked  String?      @map("msisdn_masked")
+  raw           Json
+  receivedAt    DateTime     @default(now()) @map("received_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@unique([tenantId, provider, providerTxnId])
+  @@map("momo_events")
+}
+
+model ReconciliationSession {
+  id                           String                      @id @default(uuid())
+  tenantId                     String                      @map("tenant_id")
+  financialAccountId           String                      @map("financial_account_id")
+  periodStart                  DateTime                    @map("period_start") @db.Date
+  periodEnd                    DateTime                    @map("period_end") @db.Date
+  statementClosingBalanceMinor BigInt                      @map("statement_closing_balance_minor")
+  glClosingBalanceMinor        BigInt?                     @map("gl_closing_balance_minor")
+  differenceMinor              BigInt?                     @map("difference_minor")
+  status                       ReconciliationSessionStatus @default(OPEN)
+  completedBy                  String?                     @map("completed_by")
+  completedAt                  DateTime?                   @map("completed_at")
+  createdAt                    DateTime                    @default(now()) @map("created_at")
+
+  tenant           Tenant           @relation(fields: [tenantId], references: [id])
+  financialAccount FinancialAccount @relation(fields: [financialAccountId], references: [id])
+
+  @@map("reconciliation_sessions")
+}
+
+model StockMovement {
+  id                String            @id @default(uuid())
+  tenantId          String            @map("tenant_id")
+  itemId            String            @map("item_id")
+  movementType      StockMovementType @map("movement_type")
+  qtyDelta          Decimal           @map("qty_delta") @db.Decimal(14, 3)
+  unitCostMinor     BigInt            @map("unit_cost_minor")
+  sourceDocumentRef Json?             @map("source_document_ref")
+  ebmReportedAt     DateTime?         @map("ebm_reported_at")
+  createdAt         DateTime          @default(now()) @map("created_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+  item   Item   @relation(fields: [itemId], references: [id])
+
+  @@map("stock_movements")
 }

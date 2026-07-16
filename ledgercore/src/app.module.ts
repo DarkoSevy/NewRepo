@@ -17,6 +17,8 @@ import { ItemsModule } from './items/items.module';
 import { InvoicingModule } from './invoicing/invoicing.module';
 import { ApModule } from './ap/ap.module';
 import { PaymentsModule } from './payments/payments.module';
+import { ReconciliationModule } from './reconciliation/reconciliation.module';
+import { InventoryModule } from './inventory/inventory.module';
 
 @Module({
   imports: [
@@ -36,6 +38,8 @@ import { PaymentsModule } from './payments/payments.module';
     InvoicingModule,
     ApModule,
     PaymentsModule,
+    ReconciliationModule,
+    InventoryModule,
   ],
   controllers: [AppController],
   providers: [AppService],

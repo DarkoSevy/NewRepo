@@ -14,6 +14,7 @@ import { UpdateInvoiceDto } from './dto/update-invoice.dto';
 import { CreateInvoiceLineDto } from './dto/create-invoice-line.dto';
 import { CertifyReceipt } from '../ebm/ebm-adapter.interface';
 import { ReceiptRenderer } from './receipt-renderer';
+import { StockService } from '../inventory/stock.service';
 
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -39,6 +40,7 @@ export class InvoicesService {
     private readonly docNumbering: DocumentNumberingService,
     private readonly controlAccounts: ControlAccountsService,
     private readonly receiptRenderer: ReceiptRenderer,
+    private readonly stock: StockService,
   ) {}
 
   list(tenantId: string, filters: { status?: InvoiceStatus; contactId?: string }) {
@@ -167,6 +169,15 @@ export class InvoicesService {
         if (tenant.ebmMode === 'VSDC' && !line.item.ebmRegisteredAt) {
           throw new BadRequestException(`Item ${line.item.sku} is not registered with EBM`);
         }
+        if (line.item.tracked) {
+          if (!line.item.inventoryAccountId) {
+            throw new BadRequestException(`Item ${line.item.sku} has no inventory account configured`);
+          }
+          if (tenant.negativeStockPolicy === 'BLOCK' && line.qty.greaterThan(line.item.qtyOnHand)) {
+            const shortfall = line.qty.minus(line.item.qtyOnHand);
+            throw new BadRequestException(`Insufficient stock for ${line.item.sku}: short by ${shortfall.toString()} ${line.item.unit}`);
+          }
+        }
       }
 
       if (tenant.ebmMode === 'VSDC') {
@@ -220,6 +231,17 @@ export class InvoicesService {
 
   /** Idempotent and safe to call concurrently/repeatedly: checks for an existing receipt before ever calling VSDC again. */
   async certifyInvoice(tenantId: string, invoiceId: string) {
+    try {
+      await this.runCertifyLoop(tenantId, invoiceId);
+    } catch (err) {
+      // Whatever went wrong — including a post-certification failure inside
+      // finalizeIssued (e.g. a stock shortfall from a race with another
+      // sale) — the invoice must never sit stuck in CERTIFYING forever.
+      await this.markCertifyFailed(tenantId, invoiceId, (err as Error).message);
+    }
+  }
+
+  private async runCertifyLoop(tenantId: string, invoiceId: string) {
     for (let attempt = 1; attempt <= MAX_CERTIFY_ATTEMPTS; attempt++) {
       const existingReceipt = await this.prisma.forTenant(tenantId, (tx) =>
         tx.ebmReceipt.findFirst({ where: { invoiceId, receiptType: 'NORMAL' } }),
@@ -378,6 +400,49 @@ export class InvoicesService {
       }
       if (invoice.vatMinor > 0n) {
         glLines.push({ accountId: vatOutputAccountId, direction: 'CREDIT', amountMinor: invoice.vatMinor, currency: invoice.currency });
+      }
+
+      // Tracked (inventory) items additionally book the COGS leg at WAC —
+      // Phase 2's revenue/VAT postings above are untouched either way.
+      const trackedLines = invoice.lines.filter((l) => l.item.tracked);
+      if (trackedLines.length > 0) {
+        const tenant = await tx.tenant.findUniqueOrThrow({ where: { id: tenantId } });
+        const cogsAccountId = await this.controlAccounts.resolve(tx, tenantId, 'COGS');
+        const residueByInventoryAccount = new Map<string, bigint>();
+        let cogsTotal = 0n;
+
+        for (const line of trackedLines) {
+          if (!line.item.inventoryAccountId) throw new BadRequestException(`Item ${line.item.sku} has no inventory account configured`);
+          const result = await this.stock.recordSale(tx, tenantId, line.itemId, line.qty, tenant.negativeStockPolicy, {
+            type: 'INVOICE',
+            id: invoiceId,
+          });
+          cogsTotal += result.cogsMinor;
+          glLines.push({ accountId: line.item.inventoryAccountId, direction: 'CREDIT', amountMinor: result.cogsMinor, currency: invoice.currency });
+          residueByInventoryAccount.set(
+            line.item.inventoryAccountId,
+            (residueByInventoryAccount.get(line.item.inventoryAccountId) ?? 0n) + result.residueMinor,
+          );
+        }
+        if (cogsTotal > 0n) {
+          glLines.push({ accountId: cogsAccountId, direction: 'DEBIT', amountMinor: cogsTotal, currency: invoice.currency });
+        }
+
+        const totalResidue = [...residueByInventoryAccount.values()].reduce((sum, v) => sum + v, 0n);
+        if (totalResidue !== 0n) {
+          const adjustmentAccountId = await this.controlAccounts.resolve(tx, tenantId, 'INVENTORY_ADJUSTMENT');
+          for (const [inventoryAccountId, residue] of residueByInventoryAccount) {
+            if (residue === 0n) continue;
+            const amount = residue > 0n ? residue : -residue;
+            if (residue > 0n) {
+              glLines.push({ accountId: inventoryAccountId, direction: 'DEBIT', amountMinor: amount, currency: invoice.currency });
+              glLines.push({ accountId: adjustmentAccountId, direction: 'CREDIT', amountMinor: amount, currency: invoice.currency });
+            } else {
+              glLines.push({ accountId: adjustmentAccountId, direction: 'DEBIT', amountMinor: amount, currency: invoice.currency });
+              glLines.push({ accountId: inventoryAccountId, direction: 'CREDIT', amountMinor: amount, currency: invoice.currency });
+            }
+          }
+        }
       }
 
       await this.journal.postSystemEntry(tx, {

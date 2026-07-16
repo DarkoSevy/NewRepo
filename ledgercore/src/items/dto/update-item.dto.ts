@@ -1,5 +1,5 @@
 import { TaxCode } from '@prisma/client';
-import { IsEnum, IsInt, IsOptional, IsPositive, IsString, IsUUID, MinLength } from 'class-validator';
+import { IsBoolean, IsEnum, IsInt, IsOptional, IsPositive, IsString, IsUUID, MinLength } from 'class-validator';
 
 export class UpdateItemDto {
   @IsOptional()
@@ -23,4 +23,13 @@ export class UpdateItemDto {
   @IsOptional()
   @IsUUID()
   expenseAccountId?: string;
+
+  /** Enables inventory tracking (spec Phase 3 §6) — set alongside inventoryAccountId, then call POST /stock/opening-balances. Can only be turned on for GOODS items with no stock movements yet. */
+  @IsOptional()
+  @IsBoolean()
+  tracked?: boolean;
+
+  @IsOptional()
+  @IsUUID()
+  inventoryAccountId?: string;
 }

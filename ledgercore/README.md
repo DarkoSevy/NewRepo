@@ -1,8 +1,10 @@
-# LedgerCore — Core Accounting Engine (Phases 1 & 2)
+# LedgerCore — Core Accounting Engine (Phases 1–3)
 
 Multi-tenant, double-entry general ledger for Rwanda / East Africa SMEs, plus
-invoicing, AP, and RRA EBM 2.1 compliance. NestJS · PostgreSQL 16 · Prisma.
-See the product specs for scope and invariants.
+invoicing, AP, and RRA EBM 2.1 compliance (Phase 2), and bank/MoMo
+reconciliation with perpetual WAC inventory (Phase 3).
+NestJS · PostgreSQL 16 · Prisma. See the product specs for scope and
+invariants.
 
 ## Stack notes
 
@@ -34,6 +36,32 @@ See the product specs for scope and invariants.
   exponential backoff, idempotent on `ebm_receipts`. Production should
   swap that dispatch for a durable queue (BullMQ, etc.) — the retry/
   idempotency logic itself doesn't need to change.
+- Reconciliation (`src/reconciliation/`) is import-first: statement files
+  are the source of truth, hash-deduplicated at file and line level, and
+  every automated match tier (T0 MoMo event, T1 exact reference, rules,
+  T2 trigram heuristic) lands as PROPOSED for a human to confirm.
+  Completing a reconciliation session requires difference = 0 and every
+  in-period line MATCHED/EXCLUDED, then locks lines and matches via DB
+  triggers (`20260710142900_reconciliation_business_rules`) — the only
+  post-completion mutation the triggers allow is the OWNER-gated unlock
+  performed by reopen. `GET /reports/reconciliation/:sessionId` renders
+  the attestation PDF.
+- The MoMo webhook receiver (`POST /webhooks/momo/:provider`) is gated by
+  HMAC signature + IP allowlist rather than a user session, keeps an
+  append-only `momo_events` log that is idempotent under replay, and
+  retro-matches statement lines regardless of whether the file or the
+  callback arrived first.
+- Inventory (`src/inventory/`) is perpetual weighted-average cost: WAC is
+  stored ×1000 for sub-franc precision, postings are rounded to whole RWF,
+  and every movement flushes its rounding residue to Inventory Adjustment
+  so the GL Inventory balance always equals Σ(qty·wac) exactly
+  (property-tested in `src/inventory/wac.spec.ts`). Tracked bill lines
+  post DR Inventory instead of expense; issuing an invoice with tracked
+  lines additionally posts DR COGS / CR Inventory at WAC, with negative
+  stock blocked (default) or warned per tenant policy. Unreported
+  `stock_movements` are pushed to the VSDC by
+  `StockEbmReporterService.runOnce` — one transaction per movement, so a
+  crash mid-batch never re-reports anything on the rerun.
 
 ## Local setup
 
@@ -71,9 +99,10 @@ npm test              # unit tests
 npm run test:e2e       # Testcontainers Postgres + full HTTP acceptance suite
 ```
 
-`test/ledgercore.e2e-spec.ts` (Phase 1) and `test/invoicing.e2e-spec.ts`
-(Phase 2) each spin up their own throwaway Postgres 16 container, run all
-migrations, and drive the API through supertest.
+`test/ledgercore.e2e-spec.ts` (Phase 1), `test/invoicing.e2e-spec.ts`
+(Phase 2), and `test/reconciliation.e2e-spec.ts` (Phase 3) each spin up
+their own throwaway Postgres 16 container, run all migrations, and drive
+the API through supertest.
 
 Phase 1 covers: unbalanced-entry rejection at both layers, immutability
 triggers, gap-free concurrent numbering, period locks, reversal,
@@ -90,3 +119,16 @@ ISSUED→PARTIALLY_PAID→PAID thresholds, AR-to-ledger reconciliation over a
 Output/Input ledger postings. `src/tax/vat-calc.spec.ts` property-tests
 the inclusive/exclusive rounding invariant (net + VAT = total, zero
 tolerance) with `fast-check`.
+
+Phase 3 (`test/reconciliation.e2e-spec.ts`) covers the spec §10
+acceptance targets: file- and line-level import dedupe (identical and
+overlapping files), T1 auto-match + bulk-confirm, split-match exactness
+(off-by-one rejected), the completion invariant with its remediation
+list followed by lockdown enforced via both the API and raw SQL against
+the triggers, rule-engine expense creation that stays exactly-once under
+re-import and double-confirm, wallet→bank sweeps proving the MoMo
+clearing account out to zero, HMAC-verified webhook replay idempotency
+with T0 matching in both arrival orders, negative-stock BLOCK vs WARN,
+and the EBM stock reporter re-run after a simulated mid-batch crash
+reporting each movement exactly once. `src/inventory/wac.spec.ts`
+property-tests the WAC/residue invariant with `fast-check`.

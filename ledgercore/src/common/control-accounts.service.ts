@@ -10,6 +10,8 @@ const CONTROL_ACCOUNT_CODES = {
   AP: '2000', // Accounts Payable
   VAT_OUTPUT: '2100', // VAT Output (18%) Payable
   VAT_INPUT: '1200', // VAT Input (Receivable)
+  COGS: '5000', // Cost of Goods Sold
+  INVENTORY_ADJUSTMENT: '5750', // Inventory Adjustment (shrinkage / WAC rounding residue)
 } as const;
 
 export type ControlAccountKey = keyof typeof CONTROL_ACCOUNT_CODES;

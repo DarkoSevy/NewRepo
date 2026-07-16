@@ -77,6 +77,16 @@ export class ReportsController {
     const { from, to } = parsePeriod(period);
     return this.reports.vatReturn(user.tenantId, from, to);
   }
+
+  @Get('inventory-valuation')
+  inventoryValuation(@CurrentUser() user: AuthenticatedUser) {
+    return this.reports.inventoryValuation(user.tenantId);
+  }
+
+  @Get('stock-movements')
+  stockMovements(@CurrentUser() user: AuthenticatedUser, @Query('item') item?: string) {
+    return this.reports.stockMovements(user.tenantId, item);
+  }
 }
 
 /** `period` is `YYYY-MM`, matching the RRA VAT declaration's monthly cadence. */

@@ -11,6 +11,7 @@ import {
   EbmCallResult,
   ItemRegistrationRequest,
   ItemRegistrationResult,
+  StockMovementReport,
 } from './ebm-adapter.interface';
 
 /**
@@ -141,5 +142,15 @@ export class EbmService {
       await tx.ebmDevice.updateMany({ where: { tenantId }, data: { lastSyncAt: new Date() } });
     }
     return result;
+  }
+
+  async registerStockItem(tx: TenantTx, tenantId: string, ebmMode: EbmMode, rraItemCode: string, attempt = 1) {
+    const result = await this.driverFor(ebmMode).registerStockItem({ tenantId, rraItemCode });
+    return this.logAndReturn(tx, tenantId, '/stock/items', attempt, result);
+  }
+
+  async reportStockMovement(tx: TenantTx, tenantId: string, ebmMode: EbmMode, movement: StockMovementReport, attempt = 1) {
+    const result = await this.driverFor(ebmMode).reportStockMovement({ tenantId, movement });
+    return this.logAndReturn(tx, tenantId, '/stock/movements', attempt, result);
   }
 }

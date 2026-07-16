@@ -11,6 +11,7 @@ import {
   ItemRegistrationResult,
   PurchaseRecord,
   RraCodeEntry,
+  StockMovementReport,
 } from '../ebm-adapter.interface';
 
 /**
@@ -97,6 +98,26 @@ export class VsdcDriver implements EbmAdapter {
       hoursRemaining: body.hoursRemaining ?? null,
       locked: Boolean(body.locked),
     }));
+  }
+
+  async registerStockItem(params: { tenantId: string; rraItemCode: string }): Promise<EbmCallResult<{ registered: true }>> {
+    void params;
+    return this.call('/stock/items', { itemCd: params.rraItemCode }, () => ({ registered: true as const }));
+  }
+
+  async reportStockMovement(params: { tenantId: string; movement: StockMovementReport }): Promise<EbmCallResult<{ acknowledged: true }>> {
+    void params;
+    return this.call(
+      '/stock/movements',
+      {
+        itemCd: params.movement.rraItemCode,
+        sarTyCd: params.movement.movementType,
+        qty: params.movement.qtyDelta,
+        totAmt: params.movement.unitCostMinor,
+        ocrnDt: params.movement.movementDate,
+      },
+      () => ({ acknowledged: true as const }),
+    );
   }
 
   private async call<T>(
