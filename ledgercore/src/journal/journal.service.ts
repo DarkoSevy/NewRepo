@@ -302,6 +302,20 @@ export class JournalService {
     return entry;
   }
 
+  /**
+   * Preflight for callers that commit an external, irreversible side effect
+   * (VSDC certification) before their own `postSystemEntry` call — e.g.
+   * InvoicesService.issue(). Runs the exact same checks postSystemEntry
+   * enforces (period open, accounts postable/not archived) so a closed
+   * period or an archived account is caught before certifying, not after,
+   * when the only way to unwind an already-certified external sale would be
+   * to certify a second, duplicate one.
+   */
+  async assertPostable(tx: TenantTx, tenantId: string, entryDate: Date, accountIds: string[]) {
+    await this.assertLinesPostable(tx, accountIds.map((accountId) => ({ accountId })));
+    await this.periods.assertDateInOpenPeriod(tx, tenantId, entryDate);
+  }
+
   private assertBalanced(lines: { direction: string; amountMinor: bigint }[]) {
     let debit = 0n;
     let credit = 0n;

@@ -288,6 +288,17 @@ export class ReportsService {
           AND b.bill_date BETWEEN ${from} AND ${to}
         GROUP BY bl.tax_code
       `;
+      // Direct expenses (ExpensesService.create) post VAT Input the same way
+      // bills do but have no line/header split and no draft stage — every
+      // row already hit the ledger — so they must be added here too, or
+      // inputVat understates the ledger and inputMatches goes false for any
+      // period containing a taxable direct expense.
+      const expenseInputRows = await tx.$queryRaw<{ tax_code: string; net: bigint | string; vat: bigint | string }[]>`
+        SELECT tax_code, SUM(net_minor) AS net, SUM(vat_minor) AS vat
+        FROM expenses
+        WHERE tenant_id = ${tenantId} AND date BETWEEN ${from} AND ${to}
+        GROUP BY tax_code
+      `;
 
       const codes = ['A', 'B', 'C', 'D'] as const;
       const output: Record<string, { net: bigint; vat: bigint }> = Object.fromEntries(codes.map((c) => [c, { net: 0n, vat: 0n }]));
@@ -302,6 +313,10 @@ export class ReportsService {
 
       const input: Record<string, { net: bigint; vat: bigint }> = Object.fromEntries(codes.map((c) => [c, { net: 0n, vat: 0n }]));
       for (const row of inputRows) {
+        input[row.tax_code].net += toBigInt(row.net);
+        input[row.tax_code].vat += toBigInt(row.vat);
+      }
+      for (const row of expenseInputRows) {
         input[row.tax_code].net += toBigInt(row.net);
         input[row.tax_code].vat += toBigInt(row.vat);
       }

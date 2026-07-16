@@ -187,6 +187,24 @@ export class InvoicesService {
         }
       }
 
+      // Preflight the exact GL preconditions finalizeIssued's postSystemEntry
+      // will check — a closed period or an archived/non-postable account
+      // must be caught here, before VSDC is ever called. Once certifySale
+      // succeeds it is a real, irreversible external certification; catching
+      // this only inside finalizeIssued would strand that certification with
+      // no GL entry, and any retry would certify the same sale a second time.
+      const arAccountId = await this.controlAccounts.resolve(tx, user.tenantId, 'AR');
+      const glAccountIds = new Set<string>([arAccountId, ...invoice.lines.map((l) => l.item.incomeAccountId!)]);
+      if (invoice.vatMinor > 0n) {
+        glAccountIds.add(await this.controlAccounts.resolve(tx, user.tenantId, 'VAT_OUTPUT'));
+      }
+      const trackedLines = invoice.lines.filter((l) => l.item.tracked);
+      if (trackedLines.length > 0) {
+        glAccountIds.add(await this.controlAccounts.resolve(tx, user.tenantId, 'COGS'));
+        for (const line of trackedLines) glAccountIds.add(line.item.inventoryAccountId!);
+      }
+      await this.journal.assertPostable(tx, user.tenantId, new Date(), [...glAccountIds]);
+
       const claimed = await tx.invoice.updateMany({ where: { id, status: 'DRAFT' }, data: { status: 'CERTIFYING' } });
       if (claimed.count === 0) {
         throw new BadRequestException('Invoice was already claimed for certification');
@@ -243,30 +261,37 @@ export class InvoicesService {
 
   private async runCertifyLoop(tenantId: string, invoiceId: string) {
     for (let attempt = 1; attempt <= MAX_CERTIFY_ATTEMPTS; attempt++) {
-      const existingReceipt = await this.prisma.forTenant(tenantId, (tx) =>
-        tx.ebmReceipt.findFirst({ where: { invoiceId, receiptType: 'NORMAL' } }),
-      );
-      if (existingReceipt) {
-        await this.finalizeIssued(tenantId, invoiceId, {
-          rraReceiptNo: existingReceipt.rraReceiptNo!,
-          sdcId: existingReceipt.sdcId!,
-          internalData: existingReceipt.internalData!,
-          receiptSignature: existingReceipt.receiptSignature!,
-          qrPayload: existingReceipt.qrPayload ?? '',
-          vsdcDatetime: (existingReceipt.vsdcDatetime ?? new Date()).toISOString(),
-        });
-        return;
-      }
+      const retry = await this.prisma.forTenant(tenantId, async (tx) => {
+        // Serialize every concurrent certifyInvoice caller for this exact
+        // invoice — the setImmediate dispatch from issue() and any future
+        // manual/queue retry must never both reach VSDC for the same
+        // invoice. pg_advisory_xact_lock is held for this whole attempt,
+        // including the outbound VSDC call and the finalize/fail write, and
+        // releases automatically at commit — a second caller blocks here
+        // until the first is fully done, then observes its outcome (a
+        // receipt, or status no longer CERTIFYING) and no-ops instead of
+        // racing it.
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${invoiceId})::bigint)`;
 
-      const invoice = await this.prisma.forTenant(tenantId, (tx) =>
-        tx.invoice.findUnique({ where: { id: invoiceId }, include: { lines: { include: { item: true } }, contact: true } }),
-      );
-      if (!invoice || invoice.status !== 'CERTIFYING') return;
+        const existingReceipt = await tx.ebmReceipt.findFirst({ where: { invoiceId, receiptType: 'NORMAL' } });
+        if (existingReceipt) {
+          await this.finalizeIssuedTx(tx, tenantId, invoiceId, {
+            rraReceiptNo: existingReceipt.rraReceiptNo!,
+            sdcId: existingReceipt.sdcId!,
+            internalData: existingReceipt.internalData!,
+            receiptSignature: existingReceipt.receiptSignature!,
+            qrPayload: existingReceipt.qrPayload ?? '',
+            vsdcDatetime: (existingReceipt.vsdcDatetime ?? new Date()).toISOString(),
+          });
+          return false;
+        }
 
-      const tenant = await this.prisma.forTenant(tenantId, (tx) => tx.tenant.findUniqueOrThrow({ where: { id: tenantId } }));
+        const invoice = await tx.invoice.findUnique({ where: { id: invoiceId }, include: { lines: { include: { item: true } }, contact: true } });
+        if (!invoice || invoice.status !== 'CERTIFYING') return false;
 
-      const result = await this.prisma.forTenant(tenantId, (tx) =>
-        this.ebm.certifySale(
+        const tenant = await tx.tenant.findUniqueOrThrow({ where: { id: tenantId } });
+
+        const result = await this.ebm.certifySale(
           tx,
           tenantId,
           tenant.ebmMode,
@@ -290,17 +315,20 @@ export class InvoicesService {
             })),
           },
           attempt,
-        ),
-      );
+        );
 
-      if (result.outcome === 'OK' && result.data) {
-        await this.finalizeIssued(tenantId, invoiceId, result.data);
-        return;
-      }
-      if (result.outcome === 'FATAL') {
-        await this.markCertifyFailed(tenantId, invoiceId, result.errorMessage ?? 'VSDC rejected the sale');
-        return;
-      }
+        if (result.outcome === 'OK' && result.data) {
+          await this.finalizeIssuedTx(tx, tenantId, invoiceId, result.data);
+          return false;
+        }
+        if (result.outcome === 'FATAL') {
+          await this.markCertifyFailedTx(tx, tenantId, invoiceId, result.errorMessage ?? 'VSDC rejected the sale');
+          return false;
+        }
+        return true; // RETRYABLE
+      });
+
+      if (!retry) return;
       if (attempt < MAX_CERTIFY_ATTEMPTS) {
         await sleep(backoffMs(attempt));
       }
@@ -354,8 +382,7 @@ export class InvoicesService {
     });
   }
 
-  private async finalizeIssued(tenantId: string, invoiceId: string, receiptData: CertifyReceipt) {
-    await this.prisma.forTenant(tenantId, async (tx) => {
+  private async finalizeIssuedTx(tx: TenantTx, tenantId: string, invoiceId: string, receiptData: CertifyReceipt) {
       const rows = await tx.$queryRaw<{ status: string }[]>`SELECT status FROM invoices WHERE id = ${invoiceId} FOR UPDATE`;
       if (rows[0]?.status !== 'CERTIFYING') return; // lost the race or already resolved by another attempt
 
@@ -460,11 +487,9 @@ export class InvoicesService {
         entityId: invoiceId,
         payload: { invoiceNo: invoiceNo.toString(), rraReceiptNo: receiptData.rraReceiptNo },
       });
-    });
   }
 
-  private async markCertifyFailed(tenantId: string, invoiceId: string, reason: string) {
-    await this.prisma.forTenant(tenantId, async (tx) => {
+  private async markCertifyFailedTx(tx: TenantTx, tenantId: string, invoiceId: string, reason: string) {
       const updated = await tx.invoice.updateMany({
         where: { id: invoiceId, status: 'CERTIFYING' },
         data: { status: 'CERTIFY_FAILED', certifyFailReason: reason },
@@ -477,7 +502,11 @@ export class InvoicesService {
         entityId: invoiceId,
         payload: { reason },
       });
-    });
+  }
+
+  /** Standalone wrapper for callers outside an existing transaction — the outer certifyInvoice catch-all. */
+  private async markCertifyFailed(tenantId: string, invoiceId: string, reason: string) {
+    await this.prisma.forTenant(tenantId, (tx) => this.markCertifyFailedTx(tx, tenantId, invoiceId, reason));
   }
 
   private async computeLines(

@@ -262,16 +262,23 @@ describe('LedgerCore Phase 2 acceptance (e2e)', () => {
     await request(http_).post(`/api/v1/items/${itemId}/register-ebm`).set('Authorization', `Bearer ${ownerToken}`).expect(201);
     const invoice = await draftInvoice(contactId, itemId);
 
+    const salesCallsBefore = vsdcState.salesCallCount;
+
     await request(http_).post(`/api/v1/invoices/${invoice.id}/issue`).set('Authorization', `Bearer ${ownerToken}`).expect(202);
 
     // Simulate a retry storm: several concurrent certify attempts racing the
-    // one already dispatched by issue()'s setImmediate.
+    // one already dispatched by issue()'s setImmediate. Without the
+    // per-invoice advisory lock in runCertifyLoop, every one of these could
+    // reach VSDC independently (a real, duplicate external certification per
+    // call) even though only one receipt ever lands in the DB.
     await Promise.all([
       invoicesService.certifyInvoice(tenantId, invoice.id),
       invoicesService.certifyInvoice(tenantId, invoice.id),
       invoicesService.certifyInvoice(tenantId, invoice.id),
     ]);
     await pollUntilSettled(invoice.id, 15_000);
+
+    expect(vsdcState.salesCallCount - salesCallsBefore).toBe(1);
 
     const receipts = await prisma.forTenant(tenantId, (tx: any) => // eslint-disable-line @typescript-eslint/no-explicit-any
       tx.ebmReceipt.findMany({ where: { invoiceId: invoice.id, receiptType: 'NORMAL' } }),
@@ -460,6 +467,23 @@ describe('LedgerCore Phase 2 acceptance (e2e)', () => {
   });
 
   it('VAT return report totals reconcile exactly to VAT Output/Input ledger movements', async () => {
+    // A taxable direct expense (no bill, no draft stage) posts VAT Input the
+    // same way a bill does — the report must fold it into the input side or
+    // inputVat understates the ledger and inputMatches goes false.
+    const accountsResp = await request(http_).get('/api/v1/accounts').set('Authorization', `Bearer ${ownerToken}`).expect(200);
+    const utilitiesId = accountsResp.body.flat.find((a: any) => a.code === '5300').id; // eslint-disable-line @typescript-eslint/no-explicit-any
+    await request(http_)
+      .post('/api/v1/expenses')
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .send({
+        expenseAccountId: utilitiesId,
+        paidFromAccountId: cashId,
+        taxCode: 'B',
+        date: new Date().toISOString().slice(0, 10),
+        amountMinor: 11800,
+      })
+      .expect(201);
+
     // Invoices in this suite are issued with issueDate = "now" (certification
     // time), so the reconciliation window must cover the month this test
     // actually runs in, not a fixed calendar period.

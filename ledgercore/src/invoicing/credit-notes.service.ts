@@ -128,6 +128,16 @@ export class CreditNotesService {
         }
       }
 
+      // Preflight the exact GL preconditions finalizeIssued's postSystemEntry
+      // will check, before VSDC is ever called — see InvoicesService.issue()
+      // for why this must happen here and not only inside finalizeIssued.
+      const arAccountId = await this.controlAccounts.resolve(tx, user.tenantId, 'AR');
+      const glAccountIds = new Set<string>([arAccountId, ...creditNote.lines.map((l) => l.item.incomeAccountId!)]);
+      if (creditNote.vatMinor > 0n) {
+        glAccountIds.add(await this.controlAccounts.resolve(tx, user.tenantId, 'VAT_OUTPUT'));
+      }
+      await this.journal.assertPostable(tx, user.tenantId, new Date(), [...glAccountIds]);
+
       const claimed = await tx.creditNote.updateMany({ where: { id, status: 'DRAFT' }, data: { status: 'CERTIFYING' } });
       if (claimed.count === 0) throw new BadRequestException('Credit note was already claimed for certification');
 
@@ -149,35 +159,49 @@ export class CreditNotesService {
     return this.prisma.forTenant(user.tenantId, (tx) => tx.creditNote.findUniqueOrThrow({ where: { id } }));
   }
 
+  /** Idempotent and safe to call concurrently/repeatedly: checks for an existing receipt before ever calling VSDC again. */
   private async certifyCreditNote(tenantId: string, creditNoteId: string) {
-    for (let attempt = 1; attempt <= MAX_CERTIFY_ATTEMPTS; attempt++) {
-      const existingReceipt = await this.prisma.forTenant(tenantId, (tx) =>
-        tx.ebmReceipt.findFirst({ where: { creditNoteId, receiptType: 'NORMAL' } }),
-      );
-      if (existingReceipt) {
-        await this.finalizeIssued(tenantId, creditNoteId, {
-          rraReceiptNo: existingReceipt.rraReceiptNo!,
-          sdcId: existingReceipt.sdcId!,
-          internalData: existingReceipt.internalData!,
-          receiptSignature: existingReceipt.receiptSignature!,
-          qrPayload: existingReceipt.qrPayload ?? '',
-          vsdcDatetime: (existingReceipt.vsdcDatetime ?? new Date()).toISOString(),
-        });
-        return;
-      }
+    try {
+      await this.runCertifyLoop(tenantId, creditNoteId);
+    } catch (err) {
+      // Whatever went wrong — the credit note must never sit stuck in
+      // CERTIFYING forever (mirrors InvoicesService.certifyInvoice's
+      // safety net).
+      await this.markCertifyFailed(tenantId, creditNoteId, (err as Error).message);
+    }
+  }
 
-      const creditNote = await this.prisma.forTenant(tenantId, (tx) =>
-        tx.creditNote.findUnique({
+  private async runCertifyLoop(tenantId: string, creditNoteId: string) {
+    for (let attempt = 1; attempt <= MAX_CERTIFY_ATTEMPTS; attempt++) {
+      // Serialize every concurrent certifyCreditNote caller for this exact
+      // credit note behind a per-document advisory lock held for the whole
+      // attempt (VSDC call + finalize/fail) — see InvoicesService's
+      // runCertifyLoop for the full rationale.
+      const retry = await this.prisma.forTenant(tenantId, async (tx) => {
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${creditNoteId})::bigint)`;
+
+        const existingReceipt = await tx.ebmReceipt.findFirst({ where: { creditNoteId, receiptType: 'NORMAL' } });
+        if (existingReceipt) {
+          await this.finalizeIssuedTx(tx, tenantId, creditNoteId, {
+            rraReceiptNo: existingReceipt.rraReceiptNo!,
+            sdcId: existingReceipt.sdcId!,
+            internalData: existingReceipt.internalData!,
+            receiptSignature: existingReceipt.receiptSignature!,
+            qrPayload: existingReceipt.qrPayload ?? '',
+            vsdcDatetime: (existingReceipt.vsdcDatetime ?? new Date()).toISOString(),
+          });
+          return false;
+        }
+
+        const creditNote = await tx.creditNote.findUnique({
           where: { id: creditNoteId },
           include: { lines: { include: { item: true } }, contact: true, originalInvoice: { include: { ebmReceipts: { where: { receiptType: 'NORMAL' } } } } },
-        }),
-      );
-      if (!creditNote || creditNote.status !== 'CERTIFYING') return;
+        });
+        if (!creditNote || creditNote.status !== 'CERTIFYING') return false;
 
-      const tenant = await this.prisma.forTenant(tenantId, (tx) => tx.tenant.findUniqueOrThrow({ where: { id: tenantId } }));
+        const tenant = await tx.tenant.findUniqueOrThrow({ where: { id: tenantId } });
 
-      const result = await this.prisma.forTenant(tenantId, (tx) =>
-        this.ebm.certifyCreditNote(
+        const result = await this.ebm.certifyCreditNote(
           tx,
           tenantId,
           tenant.ebmMode,
@@ -204,24 +228,26 @@ export class CreditNotesService {
             })),
           },
           attempt,
-        ),
-      );
+        );
 
-      if (result.outcome === 'OK' && result.data) {
-        await this.finalizeIssued(tenantId, creditNoteId, result.data);
-        return;
-      }
-      if (result.outcome === 'FATAL') {
-        await this.markCertifyFailed(tenantId, creditNoteId, result.errorMessage ?? 'VSDC rejected the credit note');
-        return;
-      }
+        if (result.outcome === 'OK' && result.data) {
+          await this.finalizeIssuedTx(tx, tenantId, creditNoteId, result.data);
+          return false;
+        }
+        if (result.outcome === 'FATAL') {
+          await this.markCertifyFailedTx(tx, tenantId, creditNoteId, result.errorMessage ?? 'VSDC rejected the credit note');
+          return false;
+        }
+        return true; // RETRYABLE
+      });
+
+      if (!retry) return;
       if (attempt < MAX_CERTIFY_ATTEMPTS) await sleep(backoffMs(attempt));
     }
     await this.markCertifyFailed(tenantId, creditNoteId, `VSDC unreachable after ${MAX_CERTIFY_ATTEMPTS} attempts`);
   }
 
-  private async finalizeIssued(tenantId: string, creditNoteId: string, receiptData: CertifyReceipt) {
-    await this.prisma.forTenant(tenantId, async (tx) => {
+  private async finalizeIssuedTx(tx: TenantTx, tenantId: string, creditNoteId: string, receiptData: CertifyReceipt) {
       const rows = await tx.$queryRaw<{ status: string }[]>`SELECT status FROM credit_notes WHERE id = ${creditNoteId} FOR UPDATE`;
       if (rows[0]?.status !== 'CERTIFYING') return;
 
@@ -288,11 +314,9 @@ export class CreditNotesService {
         entityId: creditNoteId,
         payload: { creditNoteNo: creditNoteNo.toString(), rraReceiptNo: receiptData.rraReceiptNo },
       });
-    });
   }
 
-  private async markCertifyFailed(tenantId: string, creditNoteId: string, reason: string) {
-    await this.prisma.forTenant(tenantId, async (tx) => {
+  private async markCertifyFailedTx(tx: TenantTx, tenantId: string, creditNoteId: string, reason: string) {
       const updated = await tx.creditNote.updateMany({
         where: { id: creditNoteId, status: 'CERTIFYING' },
         data: { status: 'CERTIFY_FAILED', certifyFailReason: reason },
@@ -305,7 +329,11 @@ export class CreditNotesService {
         entityId: creditNoteId,
         payload: { reason },
       });
-    });
+  }
+
+  /** Standalone wrapper for the outer certifyCreditNote catch-all (no existing transaction to reuse). */
+  private async markCertifyFailed(tenantId: string, creditNoteId: string, reason: string) {
+    await this.prisma.forTenant(tenantId, (tx) => this.markCertifyFailedTx(tx, tenantId, creditNoteId, reason));
   }
 
   private async sumIssuedCredits(tx: TenantTx, originalInvoiceId: string): Promise<bigint> {
