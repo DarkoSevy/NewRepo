@@ -1,0 +1,944 @@
+// LedgerCore Phase 1 — Core Accounting Engine
+// Multi-tenant double-entry general ledger.
+// NOTE: constraints/triggers/RLS enforced via raw SQL migrations, not represented here.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum AccountType {
+  ASSET
+  LIABILITY
+  EQUITY
+  INCOME
+  EXPENSE
+}
+
+enum NormalBalance {
+  DEBIT
+  CREDIT
+}
+
+enum PeriodStatus {
+  OPEN
+  CLOSED
+}
+
+enum EntryStatus {
+  DRAFT
+  POSTED
+  REVERSED
+}
+
+enum EntrySource {
+  MANUAL
+  SYSTEM
+}
+
+enum LineDirection {
+  DEBIT
+  CREDIT
+}
+
+enum UserRole {
+  OWNER
+  ACCOUNTANT
+  VIEWER
+}
+
+// ── Phase 2: Invoicing, Expenses & EBM Compliance ───────────────────────────
+
+enum ContactKind {
+  CUSTOMER
+  VENDOR
+  BOTH
+}
+
+enum ItemType {
+  GOODS
+  SERVICE
+}
+
+enum TaxCode {
+  A
+  B
+  C
+  D
+}
+
+enum PricingMode {
+  TAX_EXCLUSIVE
+  TAX_INCLUSIVE
+}
+
+enum EbmMode {
+  DISABLED
+  VSDC
+}
+
+enum InvoiceKind {
+  INVOICE
+  PROFORMA
+  TRAINING
+}
+
+enum InvoiceStatus {
+  DRAFT
+  CERTIFYING
+  ISSUED
+  PARTIALLY_PAID
+  PAID
+  CREDITED
+  CERTIFY_FAILED
+}
+
+enum CreditNoteStatus {
+  DRAFT
+  CERTIFYING
+  ISSUED
+  CERTIFY_FAILED
+}
+
+enum ReceiptType {
+  NORMAL
+  COPY
+  TRAINING
+  PROFORMA
+}
+
+enum EbmDirection {
+  OUTBOUND
+  INBOUND
+}
+
+enum EbmOutcome {
+  OK
+  RETRYABLE
+  FATAL
+}
+
+enum BillStatus {
+  DRAFT
+  APPROVED
+  PARTIALLY_PAID
+  PAID
+}
+
+enum BillOrigin {
+  MANUAL
+  EBM_SYNC
+}
+
+enum PaymentDirection {
+  IN
+  OUT
+}
+
+enum PaymentMethod {
+  CASH
+  BANK
+  MOMO_MTN
+  MOMO_AIRTEL
+  CARD
+}
+
+// ── Phase 3: Bank & MoMo Reconciliation + Inventory ─────────────────────────
+
+enum FinancialAccountKind {
+  BANK
+  MOMO
+  CASH
+}
+
+enum StatementImportStatus {
+  PARSED
+  PARTIALLY_MATCHED
+  RECONCILED
+}
+
+enum StatementLineStatus {
+  UNMATCHED
+  MATCHED
+  EXCLUDED
+}
+
+enum MatchKind {
+  MANUAL
+  RULE
+  AUTO_T1
+  AUTO_T2
+  MOMO_EVENT
+}
+
+enum MatchStatus {
+  PROPOSED
+  CONFIRMED
+}
+
+enum MatchRuleAction {
+  MATCH_CONTACT
+  CREATE_TRANSACTION
+}
+
+enum MomoProvider {
+  MTN
+  AIRTEL
+}
+
+enum ReconciliationSessionStatus {
+  OPEN
+  COMPLETED
+}
+
+enum StockMovementType {
+  OPENING
+  PURCHASE
+  SALE
+  CREDIT_NOTE_RETURN
+  ADJUSTMENT
+}
+
+enum NegativeStockPolicy {
+  BLOCK
+  WARN
+}
+
+model Tenant {
+  id                  String              @id @default(uuid())
+  name                String
+  baseCurrency        String              @default("RWF") @map("base_currency") @db.Char(3)
+  pricingMode         PricingMode         @default(TAX_EXCLUSIVE) @map("pricing_mode")
+  ebmMode             EbmMode             @default(DISABLED) @map("ebm_mode")
+  negativeStockPolicy NegativeStockPolicy @default(BLOCK) @map("negative_stock_policy")
+  createdAt           DateTime            @default(now()) @map("created_at")
+
+  users            User[]
+  accounts         Account[]
+  periods          AccountingPeriod[]
+  journalEntries   JournalEntry[]
+  journalLines     JournalLine[]
+  auditLogs        AuditLog[]
+  entryNoSequences EntryNoSequence[]
+
+  contacts            Contact[]
+  items               Item[]
+  taxRates            TaxRate[]
+  rraCodes            RraCode[]
+  ebmDevice           EbmDevice?
+  invoices            Invoice[]
+  invoiceLines        InvoiceLine[]
+  creditNotes         CreditNote[]
+  creditNoteLines     CreditNoteLine[]
+  ebmReceipts         EbmReceipt[]
+  ebmTransactions     EbmTransaction[]
+  bills               Bill[]
+  billLines           BillLine[]
+  expenses            Expense[]
+  payments            Payment[]
+  paymentAllocations  PaymentAllocation[]
+  documentNoSequences DocumentNoSequence[]
+
+  financialAccounts      FinancialAccount[]
+  statementImports       StatementImport[]
+  statementLines         StatementLine[]
+  matches                Match[]
+  matchLegs              MatchLeg[]
+  matchRules             MatchRule[]
+  momoEvents             MomoEvent[]
+  reconciliationSessions ReconciliationSession[]
+  stockMovements         StockMovement[]
+
+  @@map("tenants")
+}
+
+model User {
+  id           String   @id @default(uuid())
+  tenantId     String   @map("tenant_id")
+  email        String
+  passwordHash String   @map("password_hash")
+  role         UserRole @default(ACCOUNTANT)
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@unique([tenantId, email])
+  @@map("users")
+}
+
+model Account {
+  id            String        @id @default(uuid())
+  tenantId      String        @map("tenant_id")
+  code          String
+  name          String
+  type          AccountType
+  normalBalance NormalBalance @map("normal_balance")
+  parentId      String?       @map("parent_id")
+  isPostable    Boolean       @default(true) @map("is_postable")
+  archivedAt    DateTime?     @map("archived_at")
+  createdAt     DateTime      @default(now()) @map("created_at")
+
+  tenant   Tenant        @relation(fields: [tenantId], references: [id])
+  parent   Account?      @relation("AccountHierarchy", fields: [parentId], references: [id])
+  children Account[]     @relation("AccountHierarchy")
+  lines    JournalLine[]
+
+  itemsAsIncome      Item[]    @relation("ItemIncomeAccount")
+  itemsAsExpense     Item[]    @relation("ItemExpenseAccount")
+  expensesAsExpense  Expense[] @relation("ExpenseExpenseAccount")
+  expensesAsPaidFrom Expense[] @relation("ExpensePaidFromAccount")
+  paymentsAsDeposit  Payment[] @relation("PaymentDepositAccount")
+
+  financialAccount FinancialAccount?
+  itemsAsInventory Item[]            @relation("ItemInventoryAccount")
+
+  @@unique([tenantId, code])
+  @@map("accounts")
+}
+
+model AccountingPeriod {
+  id        String       @id @default(uuid())
+  tenantId  String       @map("tenant_id")
+  startDate DateTime     @map("start_date") @db.Date
+  endDate   DateTime     @map("end_date") @db.Date
+  status    PeriodStatus @default(OPEN)
+  closedAt  DateTime?    @map("closed_at")
+  closedBy  String?      @map("closed_by")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@unique([tenantId, startDate, endDate])
+  @@map("accounting_periods")
+}
+
+model EntryNoSequence {
+  tenantId String @id @map("tenant_id")
+  lastNo   BigInt @default(0) @map("last_no")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@map("entry_no_sequences")
+}
+
+model JournalEntry {
+  id                String      @id @default(uuid())
+  tenantId          String      @map("tenant_id")
+  entryNo           BigInt?     @map("entry_no")
+  entryDate         DateTime    @map("entry_date") @db.Date
+  memo              String?
+  status            EntryStatus @default(DRAFT)
+  source            EntrySource @default(MANUAL)
+  sourceDocumentRef Json?       @map("source_document_ref")
+  reversalOfId      String?     @map("reversal_of_id")
+  postedAt          DateTime?   @map("posted_at")
+  postedBy          String?     @map("posted_by")
+  createdAt         DateTime    @default(now()) @map("created_at")
+  createdBy         String?     @map("created_by")
+
+  tenant     Tenant         @relation(fields: [tenantId], references: [id])
+  reversalOf JournalEntry?  @relation("Reversal", fields: [reversalOfId], references: [id])
+  reversedBy JournalEntry[] @relation("Reversal")
+  lines      JournalLine[]
+
+  @@unique([tenantId, entryNo])
+  @@map("journal_entries")
+}
+
+model JournalLine {
+  id              String        @id @default(uuid())
+  tenantId        String        @map("tenant_id")
+  entryId         String        @map("entry_id")
+  accountId       String        @map("account_id")
+  direction       LineDirection
+  amountMinor     BigInt        @map("amount_minor")
+  currency        String        @db.Char(3)
+  fxRate          Decimal?      @map("fx_rate") @db.Decimal(18, 8)
+  amountBaseMinor BigInt?       @map("amount_base_minor")
+  memo            String?
+
+  tenant    Tenant       @relation(fields: [tenantId], references: [id])
+  entry     JournalEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  account   Account      @relation(fields: [accountId], references: [id])
+  matchLegs MatchLeg[]
+
+  @@map("journal_lines")
+}
+
+model AuditLog {
+  id       String   @id @default(uuid())
+  tenantId String   @map("tenant_id")
+  actorId  String?  @map("actor_id")
+  action   String
+  entity   String
+  entityId String?  @map("entity_id")
+  payload  Json?
+  at       DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@map("audit_log")
+}
+
+// ── Phase 2 models ───────────────────────────────────────────────────────────
+
+model DocumentNoSequence {
+  tenantId String @map("tenant_id")
+  docType  String @map("doc_type")
+  lastNo   BigInt @default(0) @map("last_no")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@id([tenantId, docType])
+  @@map("document_no_sequences")
+}
+
+model Contact {
+  id               String      @id @default(uuid())
+  tenantId         String      @map("tenant_id")
+  kind             ContactKind
+  name             String
+  tin              String?
+  email            String?
+  phone            String?
+  address          String?
+  momoNumber       String?     @map("momo_number")
+  paymentTermsDays Int         @default(30) @map("payment_terms_days")
+  archivedAt       DateTime?   @map("archived_at")
+  createdAt        DateTime    @default(now()) @map("created_at")
+
+  tenant      Tenant       @relation(fields: [tenantId], references: [id])
+  invoices    Invoice[]
+  creditNotes CreditNote[]
+  bills       Bill[]
+  expenses    Expense[]
+  payments    Payment[]
+
+  @@map("contacts")
+}
+
+model Item {
+  id                String    @id @default(uuid())
+  tenantId          String    @map("tenant_id")
+  sku               String
+  name              String
+  type              ItemType
+  rraItemClassCode  String?   @map("rra_item_class_code")
+  rraItemCode       String?   @map("rra_item_code")
+  taxCode           TaxCode   @map("tax_code")
+  unit              String
+  defaultPriceMinor BigInt    @map("default_price_minor")
+  incomeAccountId   String?   @map("income_account_id")
+  expenseAccountId  String?   @map("expense_account_id")
+  ebmRegisteredAt   DateTime? @map("ebm_registered_at")
+  archivedAt        DateTime? @map("archived_at")
+  createdAt         DateTime  @default(now()) @map("created_at")
+
+  // Inventory (Phase 3 §6): populated only when type = GOODS and tracked =
+  // true. wacMinor is per-unit, scaled ×1000 for sub-franc precision;
+  // divide by 1000 and round before any GL posting.
+  tracked            Boolean @default(false)
+  qtyOnHand          Decimal @default(0) @map("qty_on_hand") @db.Decimal(14, 3)
+  wacMinor           BigInt  @default(0) @map("wac_minor")
+  inventoryAccountId String? @map("inventory_account_id")
+
+  tenant           Tenant   @relation(fields: [tenantId], references: [id])
+  incomeAccount    Account? @relation("ItemIncomeAccount", fields: [incomeAccountId], references: [id])
+  expenseAccount   Account? @relation("ItemExpenseAccount", fields: [expenseAccountId], references: [id])
+  inventoryAccount Account? @relation("ItemInventoryAccount", fields: [inventoryAccountId], references: [id])
+
+  invoiceLines    InvoiceLine[]
+  creditNoteLines CreditNoteLine[]
+  billLines       BillLine[]
+  stockMovements  StockMovement[]
+
+  @@unique([tenantId, sku])
+  @@map("items")
+}
+
+model TaxRate {
+  id        String   @id @default(uuid())
+  tenantId  String   @map("tenant_id")
+  code      TaxCode
+  rateBp    Int      @map("rate_bp")
+  validFrom DateTime @map("valid_from") @db.Date
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@unique([tenantId, code, validFrom])
+  @@map("tax_rates")
+}
+
+model RraCode {
+  id       String   @id @default(uuid())
+  tenantId String   @map("tenant_id")
+  codeType String   @map("code_type")
+  code     String
+  name     String
+  syncedAt DateTime @default(now()) @map("synced_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@unique([tenantId, codeType, code])
+  @@map("rra_codes")
+}
+
+model EbmDevice {
+  id           String    @id @default(uuid())
+  tenantId     String    @unique @map("tenant_id")
+  tin          String
+  branchId     String    @map("branch_id")
+  deviceSerial String    @map("device_serial")
+  sdcId        String?   @map("sdc_id")
+  mrc          String?
+  config       Json?
+  activatedAt  DateTime? @map("activated_at")
+  lastSyncAt   DateTime? @map("last_sync_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@map("ebm_devices")
+}
+
+model Invoice {
+  id                String        @id @default(uuid())
+  tenantId          String        @map("tenant_id")
+  invoiceNo         BigInt?       @map("invoice_no")
+  contactId         String        @map("contact_id")
+  kind              InvoiceKind   @default(INVOICE)
+  status            InvoiceStatus @default(DRAFT)
+  issueDate         DateTime?     @map("issue_date") @db.Date
+  dueDate           DateTime?     @map("due_date") @db.Date
+  currency          String        @db.Char(3)
+  subtotalMinor     BigInt        @default(0) @map("subtotal_minor")
+  vatMinor          BigInt        @default(0) @map("vat_minor")
+  totalMinor        BigInt        @default(0) @map("total_minor")
+  notes             String?
+  sourceQuoteId     String?       @map("source_quote_id")
+  certifyFailReason String?       @map("certify_fail_reason")
+  createdAt         DateTime      @default(now()) @map("created_at")
+  createdBy         String?       @map("created_by")
+
+  tenant            Tenant    @relation(fields: [tenantId], references: [id])
+  contact           Contact   @relation(fields: [contactId], references: [id])
+  sourceQuote       Invoice?  @relation("QuoteConversion", fields: [sourceQuoteId], references: [id])
+  convertedInvoices Invoice[] @relation("QuoteConversion")
+
+  lines              InvoiceLine[]
+  creditNotes        CreditNote[]
+  ebmReceipts        EbmReceipt[]
+  paymentAllocations PaymentAllocation[]
+
+  @@unique([tenantId, invoiceNo])
+  @@map("invoices")
+}
+
+model InvoiceLine {
+  id             String  @id @default(uuid())
+  tenantId       String  @map("tenant_id")
+  invoiceId      String  @map("invoice_id")
+  itemId         String  @map("item_id")
+  description    String?
+  qty            Decimal @db.Decimal(12, 3)
+  unitPriceMinor BigInt  @map("unit_price_minor")
+  taxCode        TaxCode @map("tax_code")
+  lineNetMinor   BigInt  @map("line_net_minor")
+  lineVatMinor   BigInt  @map("line_vat_minor")
+  lineTotalMinor BigInt  @map("line_total_minor")
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id])
+  invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  item    Item    @relation(fields: [itemId], references: [id])
+
+  @@map("invoice_lines")
+}
+
+model CreditNote {
+  id                String           @id @default(uuid())
+  tenantId          String           @map("tenant_id")
+  creditNoteNo      BigInt?          @map("credit_note_no")
+  originalInvoiceId String           @map("original_invoice_id")
+  contactId         String           @map("contact_id")
+  status            CreditNoteStatus @default(DRAFT)
+  reasonCode        String           @map("reason_code")
+  reasonText        String?          @map("reason_text")
+  issueDate         DateTime?        @map("issue_date") @db.Date
+  currency          String           @db.Char(3)
+  subtotalMinor     BigInt           @default(0) @map("subtotal_minor")
+  vatMinor          BigInt           @default(0) @map("vat_minor")
+  totalMinor        BigInt           @default(0) @map("total_minor")
+  notes             String?
+  certifyFailReason String?          @map("certify_fail_reason")
+  createdAt         DateTime         @default(now()) @map("created_at")
+  createdBy         String?          @map("created_by")
+
+  tenant          Tenant  @relation(fields: [tenantId], references: [id])
+  originalInvoice Invoice @relation(fields: [originalInvoiceId], references: [id])
+  contact         Contact @relation(fields: [contactId], references: [id])
+
+  lines       CreditNoteLine[]
+  ebmReceipts EbmReceipt[]
+
+  @@unique([tenantId, creditNoteNo])
+  @@map("credit_notes")
+}
+
+model CreditNoteLine {
+  id             String  @id @default(uuid())
+  tenantId       String  @map("tenant_id")
+  creditNoteId   String  @map("credit_note_id")
+  itemId         String  @map("item_id")
+  description    String?
+  qty            Decimal @db.Decimal(12, 3)
+  unitPriceMinor BigInt  @map("unit_price_minor")
+  taxCode        TaxCode @map("tax_code")
+  lineNetMinor   BigInt  @map("line_net_minor")
+  lineVatMinor   BigInt  @map("line_vat_minor")
+  lineTotalMinor BigInt  @map("line_total_minor")
+
+  tenant     Tenant     @relation(fields: [tenantId], references: [id])
+  creditNote CreditNote @relation(fields: [creditNoteId], references: [id], onDelete: Cascade)
+  item       Item       @relation(fields: [itemId], references: [id])
+
+  @@map("credit_note_lines")
+}
+
+model EbmReceipt {
+  id               String      @id @default(uuid())
+  tenantId         String      @map("tenant_id")
+  invoiceId        String?     @map("invoice_id")
+  creditNoteId     String?     @map("credit_note_id")
+  receiptType      ReceiptType @map("receipt_type")
+  rraReceiptNo     String?     @map("rra_receipt_no")
+  sdcId            String?     @map("sdc_id")
+  internalData     String?     @map("internal_data")
+  receiptSignature String?     @map("receipt_signature")
+  qrPayload        String?     @map("qr_payload")
+  vsdcDatetime     DateTime?   @map("vsdc_datetime")
+  rawResponse      Json?       @map("raw_response")
+  createdAt        DateTime    @default(now()) @map("created_at")
+
+  tenant     Tenant      @relation(fields: [tenantId], references: [id])
+  invoice    Invoice?    @relation(fields: [invoiceId], references: [id])
+  creditNote CreditNote? @relation(fields: [creditNoteId], references: [id])
+
+  @@map("ebm_receipts")
+}
+
+model EbmTransaction {
+  id         String       @id @default(uuid())
+  tenantId   String       @map("tenant_id")
+  direction  EbmDirection
+  endpoint   String
+  request    Json
+  response   Json?
+  httpStatus Int?         @map("http_status")
+  outcome    EbmOutcome
+  attempt    Int          @default(1)
+  createdAt  DateTime     @default(now()) @map("created_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@map("ebm_transactions")
+}
+
+model Bill {
+  id                String     @id @default(uuid())
+  tenantId          String     @map("tenant_id")
+  billNo            BigInt?    @map("bill_no")
+  contactId         String     @map("contact_id")
+  origin            BillOrigin @default(MANUAL)
+  status            BillStatus @default(DRAFT)
+  billDate          DateTime   @map("bill_date") @db.Date
+  dueDate           DateTime?  @map("due_date") @db.Date
+  currency          String     @db.Char(3)
+  subtotalMinor     BigInt     @default(0) @map("subtotal_minor")
+  vatMinor          BigInt     @default(0) @map("vat_minor")
+  totalMinor        BigInt     @default(0) @map("total_minor")
+  notes             String?
+  supplierReceiptNo String?    @map("supplier_receipt_no")
+  supplierTin       String?    @map("supplier_tin")
+  createdAt         DateTime   @default(now()) @map("created_at")
+  createdBy         String?    @map("created_by")
+  approvedAt        DateTime?  @map("approved_at")
+  approvedBy        String?    @map("approved_by")
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id])
+  contact Contact @relation(fields: [contactId], references: [id])
+
+  lines              BillLine[]
+  paymentAllocations PaymentAllocation[]
+
+  @@unique([tenantId, billNo])
+  @@unique([tenantId, supplierTin, supplierReceiptNo])
+  @@map("bills")
+}
+
+model BillLine {
+  id             String  @id @default(uuid())
+  tenantId       String  @map("tenant_id")
+  billId         String  @map("bill_id")
+  itemId         String  @map("item_id")
+  description    String?
+  qty            Decimal @db.Decimal(12, 3)
+  unitPriceMinor BigInt  @map("unit_price_minor")
+  taxCode        TaxCode @map("tax_code")
+  lineNetMinor   BigInt  @map("line_net_minor")
+  lineVatMinor   BigInt  @map("line_vat_minor")
+  lineTotalMinor BigInt  @map("line_total_minor")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+  bill   Bill   @relation(fields: [billId], references: [id], onDelete: Cascade)
+  item   Item   @relation(fields: [itemId], references: [id])
+
+  @@map("bill_lines")
+}
+
+model Expense {
+  id                   String   @id @default(uuid())
+  tenantId             String   @map("tenant_id")
+  contactId            String?  @map("contact_id")
+  expenseAccountId     String   @map("expense_account_id")
+  paidFromAccountId    String   @map("paid_from_account_id")
+  taxCode              TaxCode  @map("tax_code")
+  date                 DateTime @db.Date
+  amountMinor          BigInt   @map("amount_minor")
+  netMinor             BigInt   @map("net_minor")
+  vatMinor             BigInt   @map("vat_minor")
+  memo                 String?
+  receiptAttachmentRef String?  @map("receipt_attachment_ref")
+  createdAt            DateTime @default(now()) @map("created_at")
+  createdBy            String?  @map("created_by")
+
+  tenant          Tenant   @relation(fields: [tenantId], references: [id])
+  contact         Contact? @relation(fields: [contactId], references: [id])
+  expenseAccount  Account  @relation("ExpenseExpenseAccount", fields: [expenseAccountId], references: [id])
+  paidFromAccount Account  @relation("ExpensePaidFromAccount", fields: [paidFromAccountId], references: [id])
+
+  @@map("expenses")
+}
+
+model Payment {
+  id               String           @id @default(uuid())
+  tenantId         String           @map("tenant_id")
+  direction        PaymentDirection
+  contactId        String?          @map("contact_id")
+  method           PaymentMethod
+  depositAccountId String           @map("deposit_account_id")
+  amountMinor      BigInt           @map("amount_minor")
+  date             DateTime         @db.Date
+  reference        String?
+  createdAt        DateTime         @default(now()) @map("created_at")
+  createdBy        String?          @map("created_by")
+
+  tenant         Tenant   @relation(fields: [tenantId], references: [id])
+  contact        Contact? @relation(fields: [contactId], references: [id])
+  depositAccount Account  @relation("PaymentDepositAccount", fields: [depositAccountId], references: [id])
+
+  allocations PaymentAllocation[]
+
+  @@map("payments")
+}
+
+model PaymentAllocation {
+  id          String   @id @default(uuid())
+  tenantId    String   @map("tenant_id")
+  paymentId   String   @map("payment_id")
+  invoiceId   String?  @map("invoice_id")
+  billId      String?  @map("bill_id")
+  amountMinor BigInt   @map("amount_minor")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  tenant  Tenant   @relation(fields: [tenantId], references: [id])
+  payment Payment  @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  invoice Invoice? @relation(fields: [invoiceId], references: [id])
+  bill    Bill?    @relation(fields: [billId], references: [id])
+
+  @@map("payment_allocations")
+}
+
+// ── Phase 3 models ───────────────────────────────────────────────────────────
+
+model FinancialAccount {
+  id                  String               @id @default(uuid())
+  tenantId            String               @map("tenant_id")
+  name                String
+  kind                FinancialAccountKind
+  glAccountId         String               @unique @map("gl_account_id")
+  currency            String               @db.Char(3)
+  bankCode            String?              @map("bank_code")
+  accountNumberMasked String?              @map("account_number_masked")
+  parserTemplate      String?              @map("parser_template")
+  archivedAt          DateTime?            @map("archived_at")
+  createdAt           DateTime             @default(now()) @map("created_at")
+
+  tenant    Tenant  @relation(fields: [tenantId], references: [id])
+  glAccount Account @relation(fields: [glAccountId], references: [id])
+
+  statementImports       StatementImport[]
+  statementLines         StatementLine[]
+  matches                Match[]
+  matchRules             MatchRule[]
+  reconciliationSessions ReconciliationSession[]
+
+  @@map("financial_accounts")
+}
+
+model StatementImport {
+  id                  String                @id @default(uuid())
+  tenantId            String                @map("tenant_id")
+  financialAccountId  String                @map("financial_account_id")
+  filename            String
+  fileHash            String                @map("file_hash")
+  periodStart         DateTime              @map("period_start") @db.Date
+  periodEnd           DateTime              @map("period_end") @db.Date
+  openingBalanceMinor BigInt                @map("opening_balance_minor")
+  closingBalanceMinor BigInt                @map("closing_balance_minor")
+  lineCount           Int                   @map("line_count")
+  status              StatementImportStatus @default(PARSED)
+  importedBy          String?               @map("imported_by")
+  createdAt           DateTime              @default(now()) @map("created_at")
+
+  tenant           Tenant           @relation(fields: [tenantId], references: [id])
+  financialAccount FinancialAccount @relation(fields: [financialAccountId], references: [id])
+  lines            StatementLine[]
+
+  @@unique([financialAccountId, fileHash])
+  @@map("statement_imports")
+}
+
+model StatementLine {
+  id                  String              @id @default(uuid())
+  tenantId            String              @map("tenant_id")
+  importId            String              @map("import_id")
+  financialAccountId  String              @map("financial_account_id")
+  lineDate            DateTime            @map("line_date") @db.Date
+  description         String
+  externalRef         String?             @map("external_ref")
+  amountMinor         BigInt              @map("amount_minor")
+  direction           PaymentDirection
+  runningBalanceMinor BigInt?             @map("running_balance_minor")
+  lineHash            String              @map("line_hash")
+  status              StatementLineStatus @default(UNMATCHED)
+  excludeReason       String?             @map("exclude_reason")
+  lockedAt            DateTime?           @map("locked_at")
+  createdAt           DateTime            @default(now()) @map("created_at")
+
+  tenant           Tenant           @relation(fields: [tenantId], references: [id])
+  import           StatementImport  @relation(fields: [importId], references: [id])
+  financialAccount FinancialAccount @relation(fields: [financialAccountId], references: [id])
+  matchLegs        MatchLeg[]
+
+  @@unique([financialAccountId, lineHash])
+  @@map("statement_lines")
+}
+
+model Match {
+  id                 String      @id @default(uuid())
+  tenantId           String      @map("tenant_id")
+  financialAccountId String      @map("financial_account_id")
+  createdBy          String?     @map("created_by")
+  kind               MatchKind
+  status             MatchStatus @default(PROPOSED)
+  createdAt          DateTime    @default(now()) @map("created_at")
+  confirmedAt        DateTime?   @map("confirmed_at")
+  confirmedBy        String?     @map("confirmed_by")
+  lockedAt           DateTime?   @map("locked_at")
+
+  tenant           Tenant           @relation(fields: [tenantId], references: [id])
+  financialAccount FinancialAccount @relation(fields: [financialAccountId], references: [id])
+  legs             MatchLeg[]
+
+  @@map("matches")
+}
+
+model MatchLeg {
+  id              String  @id @default(uuid())
+  tenantId        String  @map("tenant_id")
+  matchId         String  @map("match_id")
+  statementLineId String? @map("statement_line_id")
+  journalLineId   String? @map("journal_line_id")
+
+  tenant        Tenant         @relation(fields: [tenantId], references: [id])
+  match         Match          @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  statementLine StatementLine? @relation(fields: [statementLineId], references: [id])
+  journalLine   JournalLine?   @relation(fields: [journalLineId], references: [id])
+
+  @@map("match_legs")
+}
+
+model MatchRule {
+  id                 String          @id @default(uuid())
+  tenantId           String          @map("tenant_id")
+  financialAccountId String?         @map("financial_account_id")
+  priority           Int             @default(100)
+  predicate          Json
+  action             MatchRuleAction
+  createSpec         Json?           @map("create_spec")
+  enabled            Boolean         @default(true)
+  createdAt          DateTime        @default(now()) @map("created_at")
+
+  tenant           Tenant            @relation(fields: [tenantId], references: [id])
+  financialAccount FinancialAccount? @relation(fields: [financialAccountId], references: [id])
+
+  @@map("match_rules")
+}
+
+model MomoEvent {
+  id            String       @id @default(uuid())
+  tenantId      String       @map("tenant_id")
+  provider      MomoProvider
+  externalId    String?      @map("external_id")
+  providerTxnId String       @map("provider_txn_id")
+  status        String
+  amountMinor   BigInt       @map("amount_minor")
+  msisdnMasked  String?      @map("msisdn_masked")
+  raw           Json
+  receivedAt    DateTime     @default(now()) @map("received_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@unique([tenantId, provider, providerTxnId])
+  @@map("momo_events")
+}
+
+model ReconciliationSession {
+  id                           String                      @id @default(uuid())
+  tenantId                     String                      @map("tenant_id")
+  financialAccountId           String                      @map("financial_account_id")
+  periodStart                  DateTime                    @map("period_start") @db.Date
+  periodEnd                    DateTime                    @map("period_end") @db.Date
+  statementClosingBalanceMinor BigInt                      @map("statement_closing_balance_minor")
+  glClosingBalanceMinor        BigInt?                     @map("gl_closing_balance_minor")
+  differenceMinor              BigInt?                     @map("difference_minor")
+  status                       ReconciliationSessionStatus @default(OPEN)
+  completedBy                  String?                     @map("completed_by")
+  completedAt                  DateTime?                   @map("completed_at")
+  createdAt                    DateTime                    @default(now()) @map("created_at")
+
+  tenant           Tenant           @relation(fields: [tenantId], references: [id])
+  financialAccount FinancialAccount @relation(fields: [financialAccountId], references: [id])
+
+  @@map("reconciliation_sessions")
+}
+
+model StockMovement {
+  id                String            @id @default(uuid())
+  tenantId          String            @map("tenant_id")
+  itemId            String            @map("item_id")
+  movementType      StockMovementType @map("movement_type")
+  qtyDelta          Decimal           @map("qty_delta") @db.Decimal(14, 3)
+  unitCostMinor     BigInt            @map("unit_cost_minor")
+  sourceDocumentRef Json?             @map("source_document_ref")
+  ebmReportedAt     DateTime?         @map("ebm_reported_at")
+  createdAt         DateTime          @default(now()) @map("created_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+  item   Item   @relation(fields: [itemId], references: [id])
+
+  @@map("stock_movements")
+}
